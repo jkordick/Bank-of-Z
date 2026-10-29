@@ -736,7 +736,8 @@ def render_call_graph(digests, ctx) -> str:
                 edges.append((d["name"], t, kind, d["src"].ref(ln), how))
     o = ["# Program call graph [scan]", "",
          "> Generated — do not edit. `LINK` / `XCTL` / `CALL` between programs and `RETURN` / `START` / `RUN TRANSID` "
-         "hand-offs to CICS transactions (which program a transaction runs is CICS resource definition — not in this repo). Targets held in variables are resolved from `VALUE` clauses and "
+         "hand-offs to CICS transactions. Which program a transaction runs is not in the COBOL source: it is taken from "
+         "the CICS resource definitions in `.setup/zconfig/*.yaml` (dotted `runs` arrows). Targets held in variables are resolved from `VALUE` clauses and "
          "`MOVE 'literal'` statements in the same program; anything starting with `?` could not be resolved.", "",
          "```mermaid", "flowchart LR"]
     nodes = set()
@@ -752,10 +753,35 @@ def render_call_graph(digests, ctx) -> str:
         tgt = node_id("tx_" + b) if kind.endswith("TRANSID") else node_id(b)
         arrow = {"LINK": "-->|LINK|", "XCTL": "==>|XCTL|", "CALL": "-.->|CALL|"}.get(kind, f"-.->|{kind}|")
         o.append(f"  {node_id(a)} {arrow} {tgt}")
-    o += ["```", "", "Rounded nodes are CICS transaction IDs, not programs.", "",
+    txdefs = ctx.get("transactions", {})
+    used_tx = sorted({b for _, b, kind, _, _ in edges if kind.endswith("TRANSID") and not b.startswith("?")})
+    for t in used_tx:
+        if t in txdefs:
+            prog = txdefs[t][0]
+            if prog not in nodes:
+                nodes.add(prog)
+                o.append(f'  {node_id(prog)}["{prog}"]')
+            o.append(f"  {node_id('tx_' + t)} -. runs .-> {node_id(prog)}")
+    o += ["```", "", "Rounded nodes are CICS transaction IDs, not programs.", ""]
+    if txdefs:
+        o += ["## CICS transaction definitions [config]", "",
+              "From the CICS resource definitions checked into this repo — configuration, not COBOL. "
+              "A transaction ID built at runtime (`?` target) is **not** linked here: which IDs it can take is an inference "
+              "from the code that builds it and has to be verified.", "",
+              "| Transaction | Program | Referenced by (literal) | Definition |", "|---|---|---|---|"]
+        refs = defaultdict(set)
+        for a, b, kind, _, _ in edges:
+            if kind.endswith("TRANSID"):
+                refs[b].add(a)
+        for t in sorted(txdefs):
+            prog, where = txdefs[t]
+            by = ", ".join(f"`{x}`" for x in sorted(refs.get(t, ()))) or "—"
+            o.append(f"| `{t}` | `{prog}` | {by} | {where} |")
+        o.append("")
+    o += ["## Edges [scan]", "",
           "| From | Kind | To | In repo? | Where | Resolved via |", "|---|---|---|---|---|---|"]
     for a, b, kind, ref, how in sorted(edges):
-        inrepo = "—" if kind.endswith("TRANSID") else ("✅" if b in progs else
+        inrepo = (f"runs `{ctx['transactions'][b][0]}` [config]" if b in ctx.get("transactions", {}) else "—") if kind.endswith("TRANSID") else ("✅" if b in progs else
                                                         "external (IBM Language Environment)" if re.match(r"CEE|__", b) else
                                                         "❓ unresolved" if b.startswith("?") else "❌ not in repo")
         o.append(f"| `{a}` | {kind} | `{b}` | {inrepo} | {ref} | {how} |")
@@ -813,6 +839,35 @@ def render_data_access(digests) -> str:
 
 # --------------------------------------------------------------------------- main
 
+def load_transactions(root: Path) -> dict:
+    """CICS TRANSACTION -> PROGRAM from zconfig-style YAML (`- transaction:` blocks). No YAML library needed."""
+    txs = {}
+    setup = root / ".setup"
+    for f in sorted(setup.rglob("*.y*ml")) if setup.is_dir() else []:
+        try:
+            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        i = 0
+        while i < len(lines):
+            m = re.match(r"(\s*)-\s*transaction:\s*$", lines[i])
+            if not m:
+                i += 1
+                continue
+            indent, start, name, prog = len(m.group(1)), i, None, None
+            i += 1
+            while i < len(lines) and (not lines[i].strip() or len(lines[i]) - len(lines[i].lstrip()) > indent):
+                kv = re.match(r"\s*(name|program):\s*['\"]?([A-Za-z0-9#@$]+)", lines[i])
+                if kv and kv.group(1) == "name" and name is None:
+                    name = kv.group(2).upper()
+                elif kv and kv.group(1) == "program" and prog is None:
+                    prog = kv.group(2).upper()
+                i += 1
+            if name and prog and name not in txs:
+                txs[name] = (prog, f"`{f.relative_to(root).as_posix()}:{start + 1}`")
+    return txs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True)
@@ -841,7 +896,7 @@ def main():
 
     dup_file = raw / "duplicates.tsv"
     duplicates = [tuple(l.split("\t")) for l in dup_file.read_text().splitlines() if l.count("\t") == 2] if dup_file.exists() else []
-    ctx = {"root": root, "raw": raw, "copybooks": copybooks, "stubs": stubs, "stub_reason": stub_reason,
+    ctx = {"transactions": load_transactions(root), "root": root, "raw": raw, "copybooks": copybooks, "stubs": stubs, "stub_reason": stub_reason,
            "duplicates": duplicates,
            "version": a.rekt_version, "sha": a.rekt_sha256}
     (out / "programs").mkdir(parents=True, exist_ok=True)

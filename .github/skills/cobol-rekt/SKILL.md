@@ -29,7 +29,7 @@ BMS symbolic maps, `SQLCA`), runs cobol-rekt per program and writes:
 |---|---|
 | `docs/modernization/00-source-of-truth/index.md` | coverage per program, parser gaps, stubs, artifacts outside scope — **read first** |
 | `docs/modernization/00-source-of-truth/programs/<PROGRAM>.md` | structure, decisions, EXEC CICS/SQL/DL/I, dependencies, 88-levels, data items |
-| `docs/modernization/00-source-of-truth/call-graph.md` | LINK / XCTL / CALL / RETURN / START / RUN TRANSID |
+| `docs/modernization/00-source-of-truth/call-graph.md` | LINK / XCTL / CALL / RETURN / START / RUN TRANSID, plus transaction → program from the CICS resource definitions in `.setup/zconfig/*.yaml` ([config]) |
 | `docs/modernization/00-source-of-truth/data-access.md` | DB2 tables, CICS files, queues, DL/I calls per program |
 | `docs/modernization/00-source-of-truth/raw/` | JSON + logs (gitignored) |
 
@@ -37,7 +37,7 @@ BMS symbolic maps, `SQLCA`), runs cobol-rekt per program and writes:
 
 1. Run the script if `index.md` is missing or older than the COBOL sources.
 2. Read `index.md` and the digest of every program you make claims about.
-3. Order of trust: **original source line** > **[rekt]** facts > **[scan]** facts > LLM output.
+3. Order of trust: **original source line** > **[rekt]** facts > **[scan]** / **[config]** facts > LLM output.
 4. When an LLM-written claim contradicts the source of truth, do not silently
    fix either side — record it in `docs/modernization/01-rediscovery/open-questions.md`
    with both citations.
@@ -54,6 +54,7 @@ BMS symbolic maps, `SQLCA`), runs cobol-rekt per program and writes:
 - `LOCAL-STORAGE` items and 88-levels are not in cobol-rekt's data model; the
   digest adds them from a source scan.
 - Variables used as `PROGRAM(...)` / `TRANSID(...)` are resolved only from
-  `VALUE` clauses and `MOVE 'literal'`. Values built with `STRING` show as `?NAME`.
+  `VALUE` clauses and `MOVE 'literal'`. Values built with `STRING` show as `?NAME` and are not linked
+  to transaction definitions — which IDs they can take is an inference to verify.
 - BMS maps, JCL, PL/I, assembler (DBD/PSB), Java and z/OS Connect definitions
   are outside cobol-rekt's scope; they are listed in `index.md` but not analysed.

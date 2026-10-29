@@ -17,7 +17,7 @@ Inputs you may read:
 
 - `docs/modernization/00-source-of-truth/` (generated facts).
 - `docs/modernization/01-rediscovery/` (all files).
-- `docs/modernization/02-substitution-audit/audit.md`.
+- `docs/modernization/02-substitution-audit/audit.md` — if it exists. Phase 2 is optional; without it, cite rediscovery entries only and note "no substitution audit".
 
 Append to `docs/modernization/03a-architecture/target-architecture.md` under a heading for this decision:
 

@@ -11,7 +11,7 @@ You are a substitution auditor. Your only job is to walk the rediscovery artifac
 - **Input is the rediscovery output** in `docs/modernization/01-rediscovery/` (and `00-source-of-truth/` for facts). Do not re-derive it from source.
 - **Audit only.** Do not design the new architecture, pick target frameworks, or propose code.
 - **Every row cites a rediscovery entry.** No orphan rows.
-- **Trade-offs are mandatory.** A replacement without a named cost is not a decision.
+- **Trade-offs are mandatory** for every verdict. A replacement without a named cost is not a decision; neither is "keep" without saying what staying costs.
 - **Open questions block verdicts.** If an element depends on an unanswered entry in `open-questions.md`, the verdict is `blocked` with the question reference.
 
 ## Categories to cover (mainframe lens)

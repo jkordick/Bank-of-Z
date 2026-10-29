@@ -7,7 +7,7 @@ Emit a CI pipeline that builds, tests and scans the modernized code. Read `docs/
 
 Produce:
 
-- `.github/workflows/modernized-ci.yml` with stages: checkout, setup, build, unit tests, **phase-3b acceptance tests** (gating), security scan, IaC lint (if IaC exists), package. Trigger only on paths of the modernized code so the existing mainframe workflows are unaffected.
+- `.github/workflows/modernized-ci.yml` with stages: checkout, setup, build, unit tests, **phase-3b acceptance tests** (gating), security scan, IaC lint (if `infra/` exists — if it does not yet, say so and remind me to re-run this prompt after `/04-deploy-iac`), package. Trigger only on paths of the modernized code so the existing mainframe workflows are unaffected.
 - `docs/modernization/04-deploy/pipeline.md` explaining each stage, its inputs, and its failure semantics.
 
 Rules:

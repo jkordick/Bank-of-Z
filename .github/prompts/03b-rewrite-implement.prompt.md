@@ -19,4 +19,4 @@ Hard rules:
 - Do not reintroduce anything the substitution audit marked `retire`.
 - Do not touch the legacy code under `src/base/`.
 
-When the slice is green, append its status to `docs/modernization/03b-rewrite/<module>/parity.md`: test id, status, commit ref. Stop and wait for review before the next slice.
+When the slice is green, append its status to `docs/modernization/03b-rewrite/<module>/parity.md`: test id, status, and a `commit` column left as `pending` (the human fills it in after reviewing and committing). Stop and wait for review before the next slice.

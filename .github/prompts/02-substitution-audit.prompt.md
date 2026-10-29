@@ -21,7 +21,7 @@ Rules:
 
 - `verdict` is exactly one of: `keep-as-is` | `replace-with-library` | `replace-with-platform` | `retire` | `blocked`.
 - Every row cites a specific entry in `docs/modernization/01-rediscovery/`.
-- A `replace-*` verdict without an explicit trade-off is not accepted.
+- Every row needs an explicit trade-off — including `keep-as-is` (what staying costs) and `retire` (what is lost). A row without one is not accepted.
 - An element that depends on an open question is `blocked` and cites the question.
 - Do **not** name specific target frameworks, propose service boundaries, or write code. That is phase 3a.
 

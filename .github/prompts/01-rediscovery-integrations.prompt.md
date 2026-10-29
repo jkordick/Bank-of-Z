@@ -5,7 +5,7 @@ description: Phase 1 — Inventory every external touchpoint of Bank-of-Z, recon
 
 Inventory every place this system talks to something outside a single program. Append to `docs/modernization/01-rediscovery/integrations.md`:
 
-- CICS transactions and program-to-program `LINK` / `XCTL` / `RETURN TRANSID` / `RUN TRANSID` hand-offs.
+- CICS transactions and program-to-program `LINK` / `XCTL` / `RETURN TRANSID` / `RUN TRANSID` hand-offs. Transaction → program comes from the CICS resource definitions in `.setup/zconfig/bank-of-z-definitions.yaml` (already listed in `call-graph.md` as *[config]*).
 - DB2 tables, IMS databases (via DL/I) and files — with the programs that touch them.
 - REST APIs exposed through z/OS Connect (`src/api/`) — operation → program mapping.
 - MQ (`src/base/mq/`), Java / JNI bridges, PL/I programs.
@@ -17,7 +17,7 @@ For each entry: cite `path/to/file:LINE`, note direction (in / out / both), and 
 **Reconcile** at the end of the file with a section *Source-of-truth check*:
 
 - every edge in `00-source-of-truth/call-graph.md` and every row in `data-access.md` → the integrations entry that covers it, or `missing`;
-- every `?` (unresolved) target → what you resolved it to **with the line that proves it**, or `still unresolved`;
+- every `?` (unresolved) target → what you resolved it to **with the lines that prove it** (the code that builds the value *and* the resource definition it maps to), or `still unresolved`. Say explicitly which part is proven by a line and which part is your inference;
 - every integration you list that is **not** in the source of truth (BMS, JCL, APIs, MQ…) → marked `outside tool scope`.
 
 If you find a system whose purpose is unclear, add it to `docs/modernization/01-rediscovery/open-questions.md`. Do not guess.

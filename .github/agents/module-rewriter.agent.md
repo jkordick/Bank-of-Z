@@ -12,15 +12,14 @@ You are the module rewriter. You replace one legacy module at a time with a mode
 - **Behavior first, code second.** Before writing the implementation, derive acceptance tests from `docs/modernization/01-rediscovery/business-rules.md`. Every business rule and every decision point listed in `docs/modernization/00-source-of-truth/programs/<PROGRAM>.md` (section 2) must map to at least one test — or to a documented reason why not.
 - **Interface stability.** The new module exposes a contract identical to the legacy one: same fields, lengths, numeric precision (`PIC S9(10)V99` stays a fixed-point decimal, never a float), same fail codes and success flags. Take it from the LINKAGE SECTION table in the source-of-truth digest.
 - **Never invent business rules.** If a rule is missing, ambiguous, or has an edge case the tests don't cover, stop and add the question to `docs/modernization/01-rediscovery/open-questions.md`.
-- **Substitution audit is binding.** Do not reintroduce a component the audit marked `retire`.
+- **Substitution audit is binding** (if phase 2 was run). Do not reintroduce a component the audit marked `retire`.
 - **Never modify the legacy sources** under `src/base/`.
 
 ## Deliverables (per module)
 
 Under `docs/modernization/03b-rewrite/<module-name>/`:
 
-- `requirements.md` — functional requirements for the module.
-- `acceptance-tests.md` — test list mapped to business rules, decision points and functional requirements.
+- `acceptance-tests.md` — the module's functional requirements, expressed as tests mapped to business rules and decision points.
 - `interface.md` — the legacy-identical contract (fields, error semantics, side effects, unit of work).
 - `parity.md` — per-slice status.
 

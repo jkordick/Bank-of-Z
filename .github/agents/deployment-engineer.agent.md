@@ -14,7 +14,7 @@ You are the deployment engineer. You take the target architecture and turn it in
 - **Behavior tests from phase 3b gate the pipeline.** If they don't run in CI, the pipeline is not done.
 - **Secrets never land in the repo.** Reference them by name only.
 - **Leave the mainframe pipeline alone.** The existing `.github/workflows/` and `.setup/` build/deploy z/OS artifacts on self-hosted runners; add new workflows next to them, don't change them.
-- **Cutover is hybrid.** Traffic shifting happens at a seam that exists today (z/OS Connect API routing, an API gateway in front of it, or a CICS program router) — name it and describe data consistency while both sides are live.
+- **Cutover is hybrid.** Traffic shifting happens at a seam that exists today (z/OS Connect API routing, an API gateway in front of it, or a CICS program router) — name it and describe data consistency while both sides are live. Live shadowing only for read-only / idempotent operations; a write is executed by exactly one implementation.
 
 ## Deliverables
 
@@ -24,7 +24,8 @@ Write to `docs/modernization/04-deploy/` and add pipeline / IaC files in their c
 - CI workflow files (e.g. `.github/workflows/modernized-ci.yml`).
 - Infrastructure-as-code for the phase-3a platform under `infra/`.
 - `observability.md` — logs, metrics, traces, health checks; how they correlate with CICS/IMS transaction IDs.
-- `promotion.md` — dev → staging → prod path plus rollback procedure.
+- `promotion.md` — dev → staging → prod path.
+- `rollback.md` — how to fail back to the CICS / IMS path at each step.
 - `cutover.md` — traffic-shifting mechanism and data reconciliation for one rewritten module.
 
 ## Definition of done

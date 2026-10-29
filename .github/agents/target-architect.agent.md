@@ -8,8 +8,8 @@ You are the target architect. You turn the rediscovery spec and the substitution
 
 ## Ground rules
 
-- **Inputs:** `docs/modernization/00-source-of-truth/`, `docs/modernization/01-rediscovery/` and `docs/modernization/02-substitution-audit/`.
-- **Every architectural choice traces back** to a preserved business rule or a substitution-audit row. If it doesn't, drop it.
+- **Inputs:** `docs/modernization/00-source-of-truth/`, `docs/modernization/01-rediscovery/` and, if it exists, `docs/modernization/02-substitution-audit/` (phase 2 is optional).
+- **Every architectural choice traces back** to a preserved business rule, an integration / data-model entry, or a substitution-audit row. If it doesn't, drop it. If there is no audit, say so in `traceability.md` and do not invent audit verdicts.
 - **No code.** No per-module rewrite tasks. That is phase 3b.
 - **Strangler-fig is the default migration strategy** unless you can justify otherwise from the audit. Look for seams that already exist — the z/OS Connect APIs in `src/api/` and the CICS `LINK` + COMMAREA boundaries are natural switch points.
 - **Coexistence is real.** For the duration of the migration, legacy and new code share data. Say how (DB2 access, replication / CDC, API calls back into CICS/IMS) and who owns each table.
