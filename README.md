@@ -7,6 +7,7 @@
 > [custom agents](.github/agents/), [phase prompts](.github/prompts/), [skills](.github/skills/)
 > (including a [cobol-rekt](https://github.com/avishek-sen-gupta/cobol-rekt) based source-of-truth generator) and
 > [Copilot instructions](.github/copilot-instructions.md). Fork this repository, open it in VS Code or the Copilot CLI, and follow the workshop.
+> Run the phase prompts in a VS Code chat with the **Local** harness selected: the default Copilot harness doesn't load prompt files.
 > Everything below is the original Bank of Z documentation.
 
 Bank of Z is a hybrid banking application that demonstrates modern IBM Z development practices. It routes transactions through CICS or IMS depending on customer ID, with z/OS Connect as the API gateway between the browser-based UI and the z/OS transactional applications.
