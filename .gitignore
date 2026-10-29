@@ -37,3 +37,7 @@ scripts/update-frontend-file-zos.sh
 .bobz
 .zopeneditor/
 zos-downloads/
+
+# GitHub Copilot modernization workshop
+.tools/
+docs/modernization/00-source-of-truth/raw/
