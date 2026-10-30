@@ -157,14 +157,14 @@ by slices 1 and 2
 
 | Test id | Status | commit |
 |---|---|---|
-| INQACC-T04 | PASS - fetched spaces suppress all account-field copies; only success becomes Y | pending |
-| INQACC-T05 | PASS - fetched eight low-values suppress copies without treating them as NULL | pending |
-| INQACC-T08 | PASS - MYSTERY! type copied exactly without domain validation | pending |
-| INQACC-T09 | PASS - TEST eyecatcher copied without ACCT validation | pending |
-| INQACC-T10 | PASS - opposite-sign balance limits, maximum interest and overdraft copied exactly | pending |
-| INQACC-T12 | PASS - zero interest/balance/overdraft and negative cent copied without recalculation | pending |
-| INQACC-T47 | PASS - leading/embedded/trailing spaces in nonblank type retained exactly | pending |
-| INQACC-T48 | PASS - leap-day and year-boundary dates reordered to DDMMYYYY | pending |
+| INQACC-T04 | PASS - fetched spaces suppress all account-field copies; only success becomes Y | 8781417 |
+| INQACC-T05 | PASS - fetched eight low-values suppress copies without treating them as NULL | 8781417 |
+| INQACC-T08 | PASS - MYSTERY! type copied exactly without domain validation | 8781417 |
+| INQACC-T09 | PASS - TEST eyecatcher copied without ACCT validation | 8781417 |
+| INQACC-T10 | PASS - opposite-sign balance limits, maximum interest and overdraft copied exactly | 8781417 |
+| INQACC-T12 | PASS - zero interest/balance/overdraft and negative cent copied without recalculation | 8781417 |
+| INQACC-T47 | PASS - leading/embedded/trailing spaces in nonblank type retained exactly | 8781417 |
+| INQACC-T48 | PASS - leap-day and year-boundary dates reordered to DDMMYYYY | 8781417 |
 
 ### Execution evidence and tests-first exception
 
