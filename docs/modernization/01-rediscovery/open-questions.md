@@ -770,6 +770,42 @@ precision or NULL defaults
 `docs/modernization/01-rediscovery/open-questions.md:561`,
 `docs/modernization/01-rediscovery/open-questions.md:566`).
 
+**Current phase-3b disposition (2026-10-30): blocked on contract ambiguity,
+not on missing rules.** The resumed test-first pass read INQACC-R01 through
+R08 and their decision-coverage table
+(`docs/modernization/01-rediscovery/business-rules.md:86`,
+`docs/modernization/01-rediscovery/business-rules.md:110`).
+Source-observed assignments are documented, but the result interpretation,
+permitted input/data domains and handler reachability remain explicitly
+unresolved in INQACC-Q03/Q04/Q05, DM-Q01/DM-Q06 and AUD-Q03. The prompt
+requires stopping on ambiguity rather than inventing acceptance outputs
+(`.github/prompts/03b-rewrite-tests.prompt.md:21`).
+
+**Renewed question for the domain/CICS reviewer:** For R02 through R05,
+what is the accepted caller contract for ordinary missing accounts,
+blank/low-value types and an empty highest-account lookup, including
+whether unchanged incoming fields with success are intentional
+(INQACC-Q03)? For R01, is selection by configured sort code and account
+number alone the accepted contract despite the header (INQACC-Q05)?
+For R08, which handler invocations must be supported (INQACC-Q04), and
+what evidence will establish both rollback-response outcomes missing
+from the digest (INQACC-Q02)? Supply or explicitly bound the supported
+precision, NULL and value domains under DM-Q01/DM-Q06. These are existing
+questions carried forward, not new business rules or approved waivers.
+ADR-002 requires their applicable contract gates before substitution
+(`docs/modernization/03a-architecture/target-architecture.md:55`,
+`docs/modernization/03a-architecture/target-architecture.md:56`).
+
+No acceptance matrix, executable tests or implementation were created in
+this pass. **0 tests authored; 0/11 digest decisions covered by acceptance
+tests; 0/12 source-observed decisions covered; 0 new question IDs.**
+The additional source-only decision at
+`src/base/cics/cobol/INQACC.cbl:687` remains unverified by tooling
+(INQACC-Q02); no decision was waived or declared dead. Resume test
+derivation after the questions above are resolved or explicitly scoped
+in the rule baseline. This disposition does not claim that the eight
+documented rules or their source-level examples are absent.
+
 **Historical disposition:** Stopped before creating an acceptance matrix, executable
 tests or implementation. No business rules, expected outputs or waivers
 were invented. **0 tests authored; 0/11 digest decision points covered by
