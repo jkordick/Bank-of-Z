@@ -213,3 +213,82 @@ The substitution audit remains blocked and strangler routes disabled
 `docs/modernization/03b-rewrite/INQACC/interface.md:344`).
 No mainframe comparison, binary encoding or live unit-of-work parity is claimed.
 Stop here for review; do not begin the next slice.
+
+## Slice 4 - INQACC-R06
+
+**Status: green locally; pending human review.** This section supersedes
+slice 3's remaining-coverage snapshot. All 16 tests mapped to R06 pass,
+including T19 from slice 1; 15 new cases complete R06 and the required
+R07 diagnostic interactions
+(`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:209`).
+
+| Test id | Status | commit |
+|---|---|---|
+| INQACC-T16 | PASS - OPEN -904; exact HRAC diagnostic; no FETCH/CLOSE or storm display | pending |
+| INQACC-T17 | PASS - FETCH -904; HRAC; no CLOSE or storm display | pending |
+| INQACC-T18 | PASS - fetched row then CLOSE -904; HRAC, no populated result | pending |
+| INQACC-T19 | PASS - existing FETCH +100 then CLOSE -904 regression retained | pending |
+| INQACC-T20 | PASS - OPEN +923; storm display after LINK/error DISPLAY; HRAC | pending |
+| INQACC-T21 | PASS - OPEN -923; no storm display; HRAC | pending |
+| INQACC-T22 | PASS - FETCH +923; storm display before diagnostic LINK; HRAC | pending |
+| INQACC-T23 | PASS - FETCH -923; no storm display; HRAC | pending |
+| INQACC-T24 | PASS - CLOSE +923; storm display after LINK/error DISPLAY; HRAC | pending |
+| INQACC-T25 | PASS - CLOSE -923; no storm display or normal result; HRAC | pending |
+| INQACC-T26 | PASS - FETCH -911; exactly one FETCH, no CLOSE/retry; HRAC | pending |
+| INQACC-T27 | PASS - FETCH -913; exactly one FETCH, no CLOSE/retry; HRAC | pending |
+| INQACC-T33 | PASS - OPEN +100 is an error, not missing-account success; HRAC | pending |
+| INQACC-T34 | PASS - CLOSE +100 is an error, not missing-account success; HRAC | pending |
+| INQACC-T35 | PASS - FETCH +1 is an error; no CLOSE; HRAC | pending |
+| INQACC-T37 | PASS - FETCH -305; no NULL default or CLOSE; HRAC | pending |
+
+### Red / green evidence
+
+On 2026-10-30, the 15 tests and OPEN/FETCH outcome injection were added
+before production changes. `bash modern/inqacc/run-tests.sh` compiled and
+exited 1: **11 of 40 tests failed**, all at the existing OPEN/FETCH
+`UnsupportedOperationException` guards. All 25 prior tests and the four
+new CLOSE cases passed. No artificial failure was introduced for existing
+CLOSE behavior
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:24`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:221`).
+
+After implementing only OPEN/FETCH HRAC paths and sharing the existing
+positive-923 storm display with CLOSE, the full module suite exited 0:
+**40/40 acceptance tests pass**, compiled with Java 21
+`--release 21 -Xlint:all -Werror`
+(`modern/inqacc/run-tests.sh:13`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:74`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:84`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:105`).
+
+Fixtures assert exact ordered cursor/context/LINK/DISPLAY events, one padded
+600-character diagnostic, supplied context/clock, signed SQLCODE, source
+spelling, HRAC NODUMP/CANCEL, no normal result and no output/success assignment.
+The complete record, widths, scale-2 amounts and pointer identity remain
+unchanged. No retry, explicit rollback or handler substitution is introduced
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:221`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:409`,
+`src/base/cics/cobol/INQACC.cbl:273`,
+`src/base/cics/cobol/INQACC.cbl:353`,
+`src/base/cics/cobol/INQACC.cbl:460`).
+
+### Remaining coverage and boundary
+
+**40 of 48 specified tests pass locally; T39-T46 remain deferred, not waived.**
+R01-R07 have all their mapped cases executable. Both SQLCODE arms at
+source lines 273/353/460 and both storm-check arms at lines 604/616 now
+have executable evidence. R08 handler decisions at lines 646/763 remain
+deferred, with W01 unchanged; the rollback-response IF at line 687 remains
+**unverified by tooling** and deferred
+(`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:194`,
+`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:213`).
+
+The public logical contract and internal ports are unchanged. Legacy sources,
+REST routing and dependencies are untouched; no component is retired.
+The audit remains blocked, and strangler routes disabled
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:155`,
+`docs/modernization/02-substitution-audit/audit.md:7`,
+`docs/modernization/03b-rewrite/INQACC/interface.md:344`).
+No mainframe comparison, live adapter or unit-of-work parity is claimed.
+Stop here for review; do not begin the next slice.

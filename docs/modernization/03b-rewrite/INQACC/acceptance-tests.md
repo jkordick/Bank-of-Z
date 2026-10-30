@@ -2,8 +2,8 @@
 
 ## Scope and evidence
 
-The complete module specification is below. Slices 1 through 3 implement T01-T15,
-T19, T28-T32, T36, T38 and T47-T48 in
+The complete module specification is below. Slices 1 through 4 implement T01-T38
+and T47-T48 in
 `modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:24`;
 execution evidence and deferred coverage are recorded in
 `docs/modernization/03b-rewrite/INQACC/parity.md:1`.

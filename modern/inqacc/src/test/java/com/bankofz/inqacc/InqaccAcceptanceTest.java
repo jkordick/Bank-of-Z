@@ -37,20 +37,35 @@ public final class InqaccAcceptanceTest {
         run("INQACC-T13", () -> ordinaryBoundary("00000000"));
         run("INQACC-T14", () -> ordinaryBoundary("99999998"));
         run("INQACC-T15", InqaccAcceptanceTest::highestSentinelRow);
+        run("INQACC-T16", () -> ordinaryFailure("OPEN", -904));
+        run("INQACC-T17", () -> ordinaryFailure("FETCH", -904));
+        run("INQACC-T18", () -> ordinaryFailure("CLOSE", -904));
         run("INQACC-T19", InqaccAcceptanceTest::missingAccountCloseFailure);
+        run("INQACC-T20", () -> ordinaryFailure("OPEN", 923));
+        run("INQACC-T21", () -> ordinaryFailure("OPEN", -923));
+        run("INQACC-T22", () -> ordinaryFailure("FETCH", 923));
+        run("INQACC-T23", () -> ordinaryFailure("FETCH", -923));
+        run("INQACC-T24", () -> ordinaryFailure("CLOSE", 923));
+        run("INQACC-T25", () -> ordinaryFailure("CLOSE", -923));
+        run("INQACC-T26", () -> ordinaryFailure("FETCH", -911));
+        run("INQACC-T27", () -> ordinaryFailure("FETCH", -913));
         run("INQACC-T28", () -> highestFailure(-911));
         run("INQACC-T29", () -> highestFailure(-913));
         run("INQACC-T30", () -> highestFailure(100));
         run("INQACC-T31", () -> highestFailure(-904));
         run("INQACC-T32", () -> highestFailure(923));
+        run("INQACC-T33", () -> ordinaryFailure("OPEN", 100));
+        run("INQACC-T34", () -> ordinaryFailure("CLOSE", 100));
+        run("INQACC-T35", () -> ordinaryFailure("FETCH", 1));
         run("INQACC-T36", () -> highestFailure(1));
+        run("INQACC-T37", () -> ordinaryFailure("FETCH", -305));
         run("INQACC-T38", () -> highestFailure(-305));
         run("INQACC-T47", () -> ordinaryType(" X      ", false));
         run("INQACC-T48", InqaccAcceptanceTest::ordinaryDateBoundaries);
         if (failures != 0) {
-            throw new AssertionError(failures + " of 25 INQACC acceptance tests failed");
+            throw new AssertionError(failures + " of 40 INQACC acceptance tests failed");
         }
-        System.out.println("25 INQACC acceptance tests passed");
+        System.out.println("40 INQACC acceptance tests passed");
     }
 
     private static void ordinaryInquiry() {
@@ -201,6 +216,71 @@ public final class InqaccAcceptanceTest {
                 pad("RAD010 -Failure when attempting to CLOSE DB2 "
                         + "CURSOR (ACC-CUSOR). Check SQLCODESQLCODE=-00000904", 600))),
                 ports.diagnostics, "exact CLOSE diagnostic, including source spelling");
+    }
+
+    private static void ordinaryFailure(String site, int sqlcode) {
+        Commarea input = caller("00000042");
+        FakePorts ports = new FakePorts(List.of(row("987654", "00000042")));
+        String freeform;
+        String display;
+        List<String> expectedEvents = new ArrayList<>();
+        expectedEvents.add("OPEN:987654/00000042");
+        switch (site) {
+            case "OPEN" -> {
+                ports.openSqlcode = sqlcode;
+                freeform = "RAD010 -Failure when attempting to OPEN DB2 "
+                        + "CURSOR. Check SQLCODE. SQLCODE=";
+                display = "Failure when attempting to open DB2 CURSOR "
+                        + "ACC-CURSOR. With SQL code=";
+            }
+            case "FETCH" -> {
+                ports.fetchSqlcode = sqlcode;
+                expectedEvents.add("FETCH");
+                freeform = "FD010 -Failure when attempting to FETCH from "
+                        + "DB2 CURSOR (ACC-CURSOR). Check SQLCODESQLCODE=";
+                display = "Failure when attempting to FETCH from the DB2 "
+                        + "CURSOR ACC-CURSOR. With SQL code=";
+            }
+            case "CLOSE" -> {
+                ports.closeSqlcode = sqlcode;
+                expectedEvents.addAll(List.of("FETCH", "CLOSE"));
+                freeform = "RAD010 -Failure when attempting to CLOSE DB2 "
+                        + "CURSOR (ACC-CUSOR). Check SQLCODESQLCODE=";
+                display = "Failure when attempting to close the DB2 CURSOR"
+                        + " ACC-CURSOR. With SQL code=";
+            }
+            default -> throw new AssertionError("Unknown failure site: " + site);
+        }
+
+        try {
+            new Inqacc(ports).inquire(input);
+            throw new AssertionError(site + " " + sqlcode + " must not return normally");
+        } catch (Inqacc.Abend failure) {
+            equal("HRAC", failure.code(), site + " abend code");
+            equal(true, failure.cancel(), "CANCEL");
+            equal(true, failure.nodump(), "NODUMP");
+        }
+
+        String code = String.format(java.util.Locale.ROOT, "%+09d", sqlcode);
+        String storm = "DISPLAY:INQACC: Check-For-Storm-Drain-DB2: Storm "
+                + "Drain condition (DB2 Connection lost ) has been met (" + code + ").";
+        if (sqlcode == 923 && "FETCH".equals(site)) {
+            expectedEvents.add(storm);
+        }
+        expectedEvents.addAll(List.of("CONTEXT", "LINK:ABNDPROC", "DISPLAY:" + display + code));
+        if (sqlcode == 923 && !"FETCH".equals(site)) {
+            expectedEvents.add(storm);
+        }
+        equal(expectedEvents, ports.events,
+                "exact cursor and diagnostic order; no extra calls, retry or rollback");
+        equal(List.of(new Diagnostic(
+                CONTEXT.utime(), CONTEXT.taskno(), CONTEXT.applid(), CONTEXT.tranid(),
+                "30/10/2026", "20:34:01", "HRAC", CONTEXT.program(), 17, 29, sqlcode,
+                pad(freeform + code, 600))),
+                ports.diagnostics, "exact " + site + " diagnostic and supplied context/clock");
+        equal(caller("00000042"), input, "no output copy or success assignment");
+        same(POINTER, input.pcb1Pointer(), "opaque pointer");
+        assertShape(input);
     }
 
     private static void highestAccount() {
@@ -385,6 +465,8 @@ public final class InqaccAcceptanceTest {
         private final List<Diagnostic> diagnostics = new ArrayList<>();
         private String selectedSortcode;
         private String selectedAccno;
+        private int openSqlcode;
+        private int fetchSqlcode;
         private int closeSqlcode;
         private int highestSqlcode;
 
@@ -410,12 +492,15 @@ public final class InqaccAcceptanceTest {
             events.add("OPEN:" + sortcode + "/" + accno);
             selectedSortcode = sortcode;
             selectedAccno = accno;
-            return 0;
+            return openSqlcode;
         }
 
         @Override
         public Fetch fetch() {
             events.add("FETCH");
+            if (fetchSqlcode != 0) {
+                return new Fetch(fetchSqlcode, null);
+            }
             return rows.stream()
                     .filter(r -> r.scode().equals(selectedSortcode) && r.accno().equals(selectedAccno))
                     .findFirst()

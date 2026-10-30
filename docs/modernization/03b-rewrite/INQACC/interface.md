@@ -1,7 +1,7 @@
 # INQACC interface contract
 
 **Status: interface definition complete under the INQACC-Q07 domain answer;
-slices 1 and 2 implemented locally; full implementation and cutover remain gated**
+slices 1 through 4 implemented locally; full implementation and cutover remain gated**
 (`docs/modernization/01-rediscovery/open-questions.md:1039`,
 `docs/modernization/03a-architecture/target-architecture.md:225`).
 The checked-in mappings are authoritative, including placeholders. Accepted
@@ -357,7 +357,7 @@ substitution; relevant audit verdicts remain blocked
 `docs/modernization/02-substitution-audit/audit.md:24`,
 `docs/modernization/02-substitution-audit/audit.md:35`).
 
-## Local implementation boundary - slices 1 through 3
+## Local implementation boundary - slices 1 through 4
 
 The local workspace is `modern/inqacc/`, with standard
 `src/main/java` and `src/test/java` directories. Phase 3a selects Java/Spring
@@ -399,7 +399,7 @@ Java component names correspond to the existing INQACC field suffixes:
 
 The mapping follows the base copybook, not a new external schema
 (`src/base/cics/copy/INQACC.cpy:8`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:110`).
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`).
 Identifiers, text, whole-unit overdraft and DDMMYYYY dates retain fixed-width
 strings; interest and balances use `BigDecimal`, with no floating-point
 conversion or rounding. The opaque pointer retains object identity. The
@@ -411,20 +411,23 @@ views of the existing eight-character values, not separate stored fields
 
 `Ports` separates query operations, supplied CICS context/clock, diagnostic
 LINK attempts and DISPLAY effects. Only test doubles exist. The core throws
-`Abend` carrying HRAC after a CLOSE failure or HNCS after any nonzero highest
-SELECT outcome, both NODUMP/CANCEL. This is an internal control-transfer
+`Abend` carrying HRAC after an OPEN/CLOSE failure or a FETCH failure other than
++100, or HNCS after any nonzero highest SELECT outcome, both NODUMP/CANCEL.
+This is an internal control-transfer
 representation, not a new return field or HTTP error
-(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:75`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:90`).
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:74`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:84`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:94`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:113`).
 There is no commit, rollback, retry, real data adapter, native COMMAREA codec
 or REST projection in this slice. Binary CCSID/sign/pointer encoding and live
 unit-of-work equivalence are therefore not verified.
 
-OPEN/FETCH technical failures explicitly throw
-`UnsupportedOperationException` rather than returning success or silently
-delegating. These are development-only guards, **not legacy error semantics**
-or permission to route requests to this partial core
-(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:44`).
+Slice 4 replaces the development-only OPEN/FETCH guards with source-derived
+HRAC diagnostic/abend behavior. The installed abend handler (R08) remains
+unimplemented; this is **not permission to route requests to this partial core**
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:44`,
+`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:209`).
 The unchanged switch above remains disabled until full module, REST and
 operational acceptance; no legacy dependency is retired or replaced.
 
@@ -437,13 +440,13 @@ a cursor FETCH in highest mode. The test double implements that selection,
 but no real SQL adapter or deployed ordering/isolation behavior is verified
 (`src/base/cics/cobol/INQACC.cbl:843`,
 `src/base/cics/cobol/INQACC.cbl:869`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:396`).
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:155`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:478`).
 The public `inquire(Commarea)` entry, complete logical record shape, widths,
 exact scale-2 amounts, success flags and pointer identity are unchanged
 (`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:110`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:329`).
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:409`).
 
 Slice 3 adds only acceptance tests for R04/R05; the production core and its
 public surface are unchanged. The new ordinary-mode fixtures verify suppression
@@ -451,7 +454,27 @@ of all-space/all-low-value retrieved types, exact copying of other types and
 eyecatchers, numeric limits and zero/negative-cent values, and leap-day/year-boundary
 date ordering. Each compares the complete logical record, field widths,
 scale-2 decimals, success Y and unchanged pointer identity
-(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:97`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:162`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:329`).
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:112`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:177`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:409`).
 No fail-code field, validation rule, routing change or adapter is introduced.
+
+Slice 4 completes R06 and its required R07 interactions. Each ordinary failure
+attempts one diagnostic LINK and throws HRAC NODUMP/CANCEL without a normal
+result, retry, explicit rollback or subsequent cursor operation. Positive 923
+alone displays the exact storm message: before diagnostic construction/LINK
+for FETCH, after LINK/error DISPLAY for OPEN/CLOSE. Site-specific freeform
+text, SQLCODE sign, supplied context/clock and 600-character padding are retained
+(`src/base/cics/cobol/INQACC.cbl:312`,
+`src/base/cics/cobol/INQACC.cbl:392`,
+`src/base/cics/cobol/INQACC.cbl:466`,
+`src/base/cics/cobol/INQACC.cbl:507`,
+`src/base/cics/cobol/INQACC.cbl:604`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:74`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:221`).
+The public entry, all logical fields, widths, exact decimal precision, success
+flags and opaque pointer are unchanged; no fail-code field or new port is added
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:155`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:409`).
