@@ -3,10 +3,10 @@
 > [!NOTE]
 > **This is a workshop fork** of [IBM/Bank-of-Z](https://github.com/IBM/Bank-of-Z) used by the
 > [GitHub Copilot for Mainframe Modernization](https://moaw.dev/workshop/gh:jkordick/ghcp-for-mainframe/main/docs/) workshop.
-> Additions (besides this note and two `.gitignore` entries) live under `.github/` — a Copilot kit of
+> Additions (besides this note, two `.gitignore` entries and a [dev container](.devcontainer/devcontainer.json) for Codespaces) live under `.github/` — a Copilot kit of
 > [custom agents](.github/agents/), [phase prompts](.github/prompts/), [skills](.github/skills/)
 > (including a [cobol-rekt](https://github.com/avishek-sen-gupta/cobol-rekt) based source-of-truth generator) and
-> [Copilot instructions](.github/copilot-instructions.md). Fork this repository, open it in VS Code or the Copilot CLI, and follow the workshop.
+> [Copilot instructions](.github/copilot-instructions.md). Fork this repository, open it in VS Code, a GitHub Codespace or the Copilot CLI, and follow the workshop.
 > Run the phase prompts in a VS Code chat with the **Local** harness selected: the default Copilot harness doesn't load prompt files.
 > Everything below is the original Bank of Z documentation.
 
