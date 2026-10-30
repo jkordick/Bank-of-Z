@@ -920,3 +920,45 @@ the rewrite must reproduce it exactly, including quirks; nothing is "fixed" in t
 | DM-Q01 | Use the declarations the code actually compiles against for INQACC (its host variables / COMMAREA PICTUREs); money stays fixed-point exactly as declared there. |
 | DM-Q06 | Accepted as-is: NULL handling and value domains are whatever the legacy code does; do not add validation it does not have. |
 | AUD-Q03 | For INQACC: the failure/status codes are exactly those the source sets (COMM success flag / abend codes); no new codes. |
+
+## INQACC acceptance-test pass
+
+### INQACC-Q06 - CONTRADICTION: empty highest-account lookup acceptance outcome
+
+**Status: open; acceptance-test derivation stopped.** The domain-expert
+answer for INQACC-Q03 includes an "empty highest-account lookup" among
+success-with-unchanged-fields outcomes
+(`docs/modernization/01-rediscovery/open-questions.md:917`). The same
+answers require reproducing observable source behavior exactly
+(`docs/modernization/01-rediscovery/open-questions.md:909`).
+
+INQACC-R02 instead specifies `HNCS` with no normal result when that lookup
+has no row (`docs/modernization/01-rediscovery/business-rules.md:94`).
+The source's highest-account SELECT takes every nonzero SQLCODE,
+including `+100`, into error handling, attempts the diagnostic LINK and
+executes `ABEND ABCODE('HNCS') NODUMP CANCEL`
+(`src/base/cics/cobol/INQACC.cbl:874`,
+`src/base/cics/cobol/INQACC.cbl:924`,
+`src/base/cics/cobol/INQACC.cbl:932`). This is distinct from ordinary
+FETCH `+100`, which exits FETCH and can reach the success-only type gate
+after a successful CLOSE (`src/base/cics/cobol/INQACC.cbl:450`,
+`src/base/cics/cobol/INQACC.cbl:456`,
+`src/base/cics/cobol/INQACC.cbl:353`,
+`src/base/cics/cobol/INQACC.cbl:229`).
+
+**Question for the domain reviewer:** Should INQACC-Q03's answer exclude
+the empty highest-account lookup, confirming R02's `HNCS` outcome for
+`INQACC-ACCNO=99999999` and SELECT `SQLCODE=+100`? If success was intended,
+what authoritative legacy evidence supports it? Neither the answer nor
+the rule has been silently corrected.
+
+The test-first prompt requires stopping on ambiguity
+(`.github/prompts/03b-rewrite-tests.prompt.md:21`). No acceptance matrix,
+executable tests or implementation were created in this pass.
+**0 tests authored; 0/11 digest decisions covered by acceptance tests;
+0/12 source-observed decisions covered; 1 new blocking question
+(INQACC-Q06).** The additional rollback-response decision remains absent
+from the digest, but source-based testing is accepted by the INQACC-Q02
+answer (`docs/modernization/01-rediscovery/open-questions.md:916`).
+No decision was waived or declared dead.
+| INQACC-Q06 | The source wins: an empty highest-account lookup abends `HNCS` (`src/base/cics/cobol/INQACC.cbl:932`) — that is the contract. My INQACC-Q03 answer only covers the cases where the source actually returns success. General rule for all remaining INQACC ambiguity: whatever the source does is expected; do not stop for it again. |
