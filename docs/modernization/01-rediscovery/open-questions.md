@@ -903,3 +903,20 @@ The highest-account query filters only sort code
 by an external caller contract? INQACC-R01 describes the actual SQL
 without treating the comment as executable filtering or inferring
 authorization. No source or comment has been changed.
+
+## Domain-expert answers (workshop, 2026-10-30)
+
+Answered by the workshop participant acting as domain expert. Rule applied to every
+answer: **the observable behavior of the legacy source is the accepted contract** —
+the rewrite must reproduce it exactly, including quirks; nothing is "fixed" in the rewrite.
+
+| Question | Answer |
+|---|---|
+| INQACC-Q01 | RESOLVED — INQACC business rules now exist (`business-rules.md`, INQACC section). |
+| INQACC-Q02 | Accepted: the rollback-response decision at `src/base/cics/cobol/INQACC.cbl:687` is part of the contract as the source shows it. Test it from the source; the digest omission is a tooling gap, not a behavior question. |
+| INQACC-Q03 | Accepted as-is: success with unchanged account fields (missing account, blank/low-value type, empty highest-account lookup) is the caller contract exactly as the source produces it. |
+| INQACC-Q04 | Accepted as-is: AFCR/AFCS/AFCT handling is kept exactly as coded; test it as written even if rarely reachable. |
+| INQACC-Q05 | Accepted: selection by configured sort code + account number only (as the code does); the header comment is outdated. |
+| DM-Q01 | Use the declarations the code actually compiles against for INQACC (its host variables / COMMAREA PICTUREs); money stays fixed-point exactly as declared there. |
+| DM-Q06 | Accepted as-is: NULL handling and value domains are whatever the legacy code does; do not add validation it does not have. |
+| AUD-Q03 | For INQACC: the failure/status codes are exactly those the source sets (COMM success flag / abend codes); no new codes. |
