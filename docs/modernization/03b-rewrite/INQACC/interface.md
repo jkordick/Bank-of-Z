@@ -1,13 +1,16 @@
 # INQACC interface contract
 
-**Status: incomplete at the REST boundary; stopped on INQACC-Q07**
-(`docs/modernization/01-rediscovery/open-questions.md:966`).
-The source-level sections below are evidence-backed, not an approved
-substitutable HTTP contract. No implementation or routing change was made.
+**Status: interface definition complete under the INQACC-Q07 domain answer;
+implementation and cutover remain gated**
+(`docs/modernization/01-rediscovery/open-questions.md:1039`,
+`docs/modernization/03a-architecture/target-architecture.md:225`).
+The checked-in mappings are authoritative, including placeholders. Accepted
+undefined behavior is recorded below, not filled in. No implementation or
+routing change was made.
 
 ## Scope and authority
 
-This is the source-level contract for one module, not an implementation or
+This is the source and REST contract for one module, not an implementation or
 cutover approval. Observable source behavior, including quirks, is accepted by
 the domain reviewer; the final Q06 answer supersedes Q03 for an empty
 highest-account lookup
@@ -201,30 +204,133 @@ records with banking data, or infer deployed recovery settings from this file
 `.setup/zconfig/bank-of-z-definitions.yaml:38`,
 `docs/modernization/01-rediscovery/open-questions.md:572`).
 
-## REST projections and switch point
+## REST input and output projections
+
+The two GETs consume a required string path parameter `accountId`, have no
+mapped request body, and declare `application/json` success responses
+(`src/api/src/main/api/openapi.yaml:480`,
+`src/api/src/main/api/openapi.yaml:491`,
+`src/api/src/main/api/openapi.yaml:577`,
+`src/api/src/main/api/openapi.yaml:588`).
 
 Both GET request mappings assign only path accountId to INQACC-ACCNO; there
 is no prefix stripping or caller-supplied sort-code/type mapping
 (`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/request.yaml:10`,
 `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/request.yaml:10`).
+Both the COMMAREA group and mapped ACCNO have `required: false`,
+`nullable: false`; preserve these mapping attributes, distinct from the
+required HTTP path parameter
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/request.yaml:6`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/request.yaml:6`).
 
-Detail output echoes the request accountId, projects type/number/sort code/
-customer/interest/overdraft/balances, constructs openingDate from the returned
-date overlay, and supplies constants GBP and ACTIVE. In highest mode the echoed
-accountId can therefore differ from returned accountNumber
-(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:6`).
-Balance output is a single object, not a balance list: AVAILABLE, returned
-available balance, GBP, DEBIT if negative otherwise CREDIT, and last-statement
-date at `T00:00:00Z`, not inquiry execution time
-(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:6`).
+In the tables, field names after `INQACC-` refer to the returned COMMAREA,
+**template** retains the mapping's string interpolation and **expression**
+retains its numeric value. Required/nullable are the literal mapping attributes,
+not new validation rules. Monetary and interest expressions use exact decimal
+JSON numbers; the OpenAPI `double` label is an accepted documentation defect,
+not permission for binary floating point
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:6`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:6`,
+`docs/modernization/01-rediscovery/open-questions.md:1039`).
+
+### getAccount - 200 JSON object
+
+| Property | Literal projection | Required / nullable | Evidence |
+|---|---|---|---|
+| accountId | Template: original request path `accountId`, not returned ACCNO. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:6` |
+| accountType | Template: INQACC-ACC-TYPE; no enum validation. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:10`, `docs/modernization/01-rediscovery/open-questions.md:1039` |
+| currency | Template constant: `GBP`. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:14` |
+| accountNumber | Template: INQACC-ACCNO. | false / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:18` |
+| sortCode | Template: INQACC-SCODE; no inserted hyphens. | false / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:22` |
+| status | Template constant: `ACTIVE`, not derived account state. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:26` |
+| openingDate | Template: INQACC-OPENED-GROUP YEAR + `-` + MONTH + `-` + DAY, in that order. | false / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:30` |
+| customerId | Template: INQACC-CUSTNO; no added prefix. | false / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:34` |
+| interestRate | Expression: INQACC-INT-RATE, exact decimal scale 2. | false / true | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:38`, `src/base/cics/copy/INQACC.cpy:13` |
+| overdraftLimit | Expression: INQACC-OVERDRAFT, unsigned whole-unit integer. | false / true | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:42`, `src/base/cics/copy/INQACC.cpy:19` |
+| availableBalance | Expression: INQACC-AVAIL-BAL, signed exact decimal scale 2. | false / true | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:46`, `src/base/cics/copy/INQACC.cpy:30` |
+| actualBalance | Expression: INQACC-ACTUAL-BAL, signed exact decimal scale 2. | false / true | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:50`, `src/base/cics/copy/INQACC.cpy:31` |
+
+These are the mapped properties, not the entire optional OpenAPI Account
+catalog; do not synthesize accountSubType, nickname or iban. Highest-account
+mode can return an accountNumber different from the echoed `99999999` accountId.
+Neither INQACC-SUCCESS nor the opaque pointer is exposed in this projection
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:6`,
+`src/api/src/main/api/openapi.yaml:1139`,
+`src/base/cics/cobol/INQACC.cbl:218`).
+
+### getAccountBalances - 200 JSON object
+
+| Property | Literal projection | Required / nullable | Evidence |
+|---|---|---|---|
+| balanceType | Template constant: `AVAILABLE`. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:6` |
+| amount | Expression: INQACC-AVAIL-BAL, signed exact decimal scale 2; retain the sign, not an absolute value. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:10`, `src/base/cics/copy/INQACC.cpy:30` |
+| currency | Template constant: `GBP`. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:14` |
+| creditDebitIndicator | Template: `DEBIT` if INQACC-AVAIL-BAL < 0, otherwise `CREDIT` (including zero). | false / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:18` |
+| dateTime | Template: INQACC-LAST-STMT-GROUP YEAR + `-` + MONTH + `-` + DAY + `T00:00:00Z`. Last statement date, not execution time. | true / false | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:23` |
+
+This is one Balance object, not an array or BalanceList wrapper; it does not
+project actual balance, accountId, INQACC-SUCCESS or the pointer
+(`src/api/src/main/api/openapi.yaml:590`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_200.yaml:4`).
+
+## REST status and error semantics
 
 The checked-in response selectors use COMMAREA-exists **or** abendCode-absent
 for 200, with a final true condition for 500; neither tests INQACC-SUCCESS.
 Do not invent a missing-account 404 or map N to a new status
 (`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:3`,
 `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:3`).
-The following wire-contract gaps are recorded in INQACC-Q07; this source-level
-record must not be used as a complete substitutable HTTP contract.
+Retain the selector order and predicates literally: existence of a COMMAREA
+satisfies the 200 predicate even if abendCode exists; with no COMMAREA and no
+abendCode the predicate also holds. There is no separate per-abend HTTP mapping
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:4`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:4`).
+
+| Status | Both operations' checked-in mapping contract | Evidence |
+|---|---|---|
+| 200 | Predicate above; operation-specific body defined above. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:3`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:3` |
+| 400 | Entry names response_400.yaml, but the file is absent. **legacy: undefined, not reproduced**; no invented status trigger or body. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:7`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:7`, `docs/modernization/01-rediscovery/open-questions.md:1039` |
+| 401 | Entry with no condition; literal body `{"code":"ERROR_CODE","message":"Error message"}`. No module-specific authorization trigger is defined here. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:9`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_401.yaml:6`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_401.yaml:6` |
+| 403 | Entry with no condition; same literal body. No new access-denial rule. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:11`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_403.yaml:6`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_403.yaml:6` |
+| 404 | Entry with no condition; same literal body. Not a new missing-account test. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:13`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_404.yaml:6`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_404.yaml:6` |
+| 500 | Final `condition: true`; same literal body, not the abend code or diagnostic text. | `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:15`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_500.yaml:6`, `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_500.yaml:6` |
+
+Both `code` and `message` in each existing error body are required and
+non-nullable. Keep the placeholder strings literally; do not substitute HRAC,
+HNCS, HROL, SQLCODE or new explanatory text
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_500.yaml:6`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_500.yaml:6`,
+`docs/modernization/01-rediscovery/open-questions.md:1039`).
+
+### Accepted known gaps and declaration defects
+
+INQACC-Q07 is answered, not an instruction to infer runtime behavior from absent
+artifacts. Its accepted disposition is binding for this interface definition
+(`docs/modernization/01-rediscovery/open-questions.md:1039`):
+
+- Missing 400 mapping: **legacy: undefined, not reproduced**. This does not
+  assert that z/OS Connect skips the missing file, or predict deployment/runtime
+  failure from it.
+- Non-numeric or overlength accountId: retain the direct assignment and
+  COMMAREA `PIC 9(8)` move behavior. Exact HTTP conversion/rejection remains a
+  known gap; no new regex, prefix stripping, numeric validation, truncation
+  algorithm or error response is specified.
+- Account-type enum: the OpenAPI enumeration is not a new validation rule;
+  reproduce the source type gate and direct output projection.
+- Money and interest: OpenAPI `double` is a documentation defect. Preserve
+  exact fixed-point decimal JSON numbers, without new rounding or float
+  conversion.
+
+The underlying contradictions and missing artifacts remain recorded with
+source citations in INQACC-Q07; its domain answer accepts these dispositions
+without requiring another REST clarification. This contract does not claim
+that undefined cases have executable parity or that deployment/identity gates
+are resolved
+(`docs/modernization/01-rediscovery/open-questions.md:966`,
+`docs/modernization/01-rediscovery/open-questions.md:1039`,
+`docs/modernization/03a-architecture/target-architecture.md:225`).
+
+## Strangler-fig switch point
 
 **Selected switch:** ADR-002/003/007 place the strangler router in front of
 z/OS Connect at method/path plus an owner-approved caller cohort. Default and
