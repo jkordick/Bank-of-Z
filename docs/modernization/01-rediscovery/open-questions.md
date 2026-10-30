@@ -729,14 +729,21 @@ No legacy sources or generated source-of-truth files were changed.
 
 ### INQACC-Q01 - Missing module business-rule and decision-coverage baseline
 
-**Status: open; blocks INQACC acceptance-test derivation.** This is the
+**Status: baseline supplied; reviewer acceptance and contract questions remain open.**
+The INQACC section and Decision coverage table have now been appended to
+`business-rules.md`, with INQACC-R01 through R08 and all 11 digest decisions
+mapped. An additional source-only decision is recorded in INQACC-Q02.
+This supplies the previously missing documentation, not domain approval
+or resolution of AUD-Q03, DM-Q01 and DM-Q06. The historical blocker and
+test-authoring disposition below describe the earlier phase 3b attempt.
+This is the
 module-specific instance of AUD-Q04, not a resolution of that broader
 coverage question (`docs/modernization/01-rediscovery/open-questions.md:595`).
 The requested test-first prompt requires the module's business rules and
 Decision coverage table and instructs the author to stop on ambiguity
 (`.github/prompts/03b-rewrite-tests.prompt.md:10`,
 `.github/prompts/03b-rewrite-tests.prompt.md:21`).
-However, `business-rules.md` contains only the XFRFUN section and its
+At that attempt, `business-rules.md` contained only the XFRFUN section and its
 coverage table, not INQACC rules or rule identifiers
 (`docs/modernization/01-rediscovery/business-rules.md:3`,
 `docs/modernization/01-rediscovery/business-rules.md:37`).
@@ -763,10 +770,100 @@ precision or NULL defaults
 `docs/modernization/01-rediscovery/open-questions.md:561`,
 `docs/modernization/01-rediscovery/open-questions.md:566`).
 
-**Disposition:** Stopped before creating an acceptance matrix, executable
+**Historical disposition:** Stopped before creating an acceptance matrix, executable
 tests or implementation. No business rules, expected outputs or waivers
 were invented. **0 tests authored; 0/11 digest decision points covered by
 acceptance tests; 1 new blocking question raised.** This is not a claim
 that INQACC has zero business rules or that 11 is a verified exhaustive
 source-level decision count. Resume phase 3b after the missing baseline
 and applicable contract questions are resolved.
+
+## INQACC business-rule pass
+
+### INQACC-Q02 - CONTRADICTION: rollback-response decision absent from digest
+
+**Status: open; tooling completeness unverified at this branch.** The
+digest reports 11 decisions and lists only the abend-code EVALUATE and
+storm-drain-flag IF in AH010
+(`docs/modernization/00-source-of-truth/programs/INQACC.md:12`,
+`docs/modernization/00-source-of-truth/programs/INQACC.md:103`).
+The original source additionally contains
+`IF WS-CICS-RESP NOT = DFHRESP(NORMAL)` after `SYNCPOINT ROLLBACK`
+(`src/base/cics/cobol/INQACC.cbl:682`,
+`src/base/cics/cobol/INQACC.cbl:687`).
+Its failure arm attempts recording and abends HROL; its normal arm
+continues to `INQACC-SUCCESS='N'` and RETURN
+(`src/base/cics/cobol/INQACC.cbl:738`,
+`src/base/cics/cobol/INQACC.cbl:748`,
+`src/base/cics/cobol/INQACC.cbl:756`).
+
+**Question:** Does the tooling maintainer confirm this omitted IF, and
+what evidence is accepted for its two outcomes? INQACC-R08 preserves
+the source behavior. Coverage distinguishes 11 digest decisions from
+12 source-observed decisions; generated files were not hand-corrected.
+
+### INQACC-Q03 - Meaning of success with unchanged account fields
+
+**Status: open; result-contract interpretation stopped.** Ordinary
+FETCH `+100` initializes internal OUTPUT-DATA and exits FETCH, but the
+blank-type gate then sets only `INQACC-SUCCESS='Y'`
+(`src/base/cics/cobol/INQACC.cbl:450`,
+`src/base/cics/cobol/INQACC.cbl:452`,
+`src/base/cics/cobol/INQACC.cbl:456`,
+`src/base/cics/cobol/INQACC.cbl:229`).
+Successful rows with all-spaces or all-low-values types take the same
+gate, including the highest-account path
+(`src/base/cics/cobol/INQACC.cbl:542`,
+`src/base/cics/cobol/INQACC.cbl:949`).
+In contrast, highest-account SELECT `+100` enters HNCS handling
+(`src/base/cics/cobol/INQACC.cbl:874`,
+`src/base/cics/cobol/INQACC.cbl:932`).
+
+**Question:** Are these distinct outcomes intended, which callers depend
+on unchanged incoming fields, and how should a caller distinguish a
+missing/blank-type account from a populated success? Are blank and
+low-values types permitted or externally prevented? INQACC-R02 through
+R05 preserve the observable assignments without inventing not-found
+flags, cleared balances or a type domain. This is the INQACC-specific
+instance of the existing AUD-Q03 result-contract question; NULLs are not
+equated with spaces/low-values (DM-Q06).
+
+### INQACC-Q04 - Reachability of AFCR/AFCS/AFCT handling in DB2 inquiry
+
+**Status: open; no dead-code conclusion.** The installed abend handler
+explicitly recognizes AFCR/AFCS/AFCT, requests rollback and returns
+`INQACC-SUCCESS='N'` on a normal rollback response
+(`src/base/cics/cobol/INQACC.cbl:210`,
+`src/base/cics/cobol/INQACC.cbl:671`,
+`src/base/cics/cobol/INQACC.cbl:682`,
+`src/base/cics/cobol/INQACC.cbl:756`).
+The inquiry reads ACCOUNT through DB2 and its explicit SQL-error abends
+use CANCEL
+(`src/base/cics/cobol/INQACC.cbl:66`,
+`src/base/cics/cobol/INQACC.cbl:335`,
+`src/base/cics/cobol/INQACC.cbl:843`,
+`src/base/cics/cobol/INQACC.cbl:932`).
+
+**Question:** Which supported runtime invocation can deliver these
+VSAM-labelled abends to this handler, and is the resulting N return a
+supported caller contract? INQACC-R08 documents conditional behavior
+only; no branch is declared dead and no workload storm-drain
+configuration is inferred.
+
+### INQACC-Q05 - CONTRADICTION: header claims account-type matching
+
+**Status: open; intended selection contract unknown.** The program
+header says it retrieves a row "matching on the account number & the
+account_type" (`src/base/cics/cobol/INQACC.cbl:10`).
+The ordinary cursor instead predicates on ACCOUNT_SORTCODE and
+ACCOUNT_NUMBER only, with the sort-code host set from SORTCODE
+(`src/base/cics/cobol/INQACC.cbl:80`,
+`src/base/cics/cobol/INQACC.cbl:263`,
+`src/base/cics/cobol/INQACC.cbl:265`).
+The highest-account query filters only sort code
+(`src/base/cics/cobol/INQACC.cbl:869`).
+
+**Question:** Is the header stale, or is account-type restriction supplied
+by an external caller contract? INQACC-R01 describes the actual SQL
+without treating the comment as executable filtering or inferring
+authorization. No source or comment has been changed.
