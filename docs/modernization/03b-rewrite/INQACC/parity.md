@@ -80,18 +80,18 @@ R05 and R07 interactions; this does not claim full coverage of those rules
 
 | Test id | Status | commit |
 |---|---|---|
-| INQACC-T02 | PASS - highest number at configured sort code, not newest date or global highest; complete output copy | pending |
-| INQACC-T06 | PASS - highest type spaces retains all incoming fields except success Y; no lower-row fallback | pending |
-| INQACC-T07 | PASS - highest type low-values retains sentinel, other fields and pointer; success Y | pending |
-| INQACC-T11 | PASS - exact opposite-sign balance limits copied through highest mode | pending |
-| INQACC-T15 | PASS - actual row 99999999 still uses highest SELECT, not cursor lookup | pending |
-| INQACC-T28 | PASS - SELECT -911 records HNCS and abends; no retry or rollback | pending |
-| INQACC-T29 | PASS - SELECT -913 records HNCS and abends; no retry or rollback | pending |
-| INQACC-T30 | PASS - no configured-sort row gives +100, diagnostic HNCS and abend, not success | pending |
-| INQACC-T31 | PASS - SELECT -904 records HNCS and abends | pending |
-| INQACC-T32 | PASS - SELECT +923 records HNCS and abends without storm diagnostic | pending |
-| INQACC-T36 | PASS - SELECT +1 records HNCS and abends | pending |
-| INQACC-T38 | PASS - SELECT -305 records HNCS and abends without NULL defaulting | pending |
+| INQACC-T02 | PASS - highest number at configured sort code, not newest date or global highest; complete output copy | 11057ad |
+| INQACC-T06 | PASS - highest type spaces retains all incoming fields except success Y; no lower-row fallback | 11057ad |
+| INQACC-T07 | PASS - highest type low-values retains sentinel, other fields and pointer; success Y | 11057ad |
+| INQACC-T11 | PASS - exact opposite-sign balance limits copied through highest mode | 11057ad |
+| INQACC-T15 | PASS - actual row 99999999 still uses highest SELECT, not cursor lookup | 11057ad |
+| INQACC-T28 | PASS - SELECT -911 records HNCS and abends; no retry or rollback | 11057ad |
+| INQACC-T29 | PASS - SELECT -913 records HNCS and abends; no retry or rollback | 11057ad |
+| INQACC-T30 | PASS - no configured-sort row gives +100, diagnostic HNCS and abend, not success | 11057ad |
+| INQACC-T31 | PASS - SELECT -904 records HNCS and abends | 11057ad |
+| INQACC-T32 | PASS - SELECT +923 records HNCS and abends without storm diagnostic | 11057ad |
+| INQACC-T36 | PASS - SELECT +1 records HNCS and abends | 11057ad |
+| INQACC-T38 | PASS - SELECT -305 records HNCS and abends without NULL defaulting | 11057ad |
 
 ### Red / green evidence
 
