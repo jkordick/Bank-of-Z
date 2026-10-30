@@ -724,3 +724,49 @@ wording in the orientation does not negate the explicitly qualified
 manual target inference (`docs/modernization/01-rediscovery/repo-map.md:116`,
 `docs/modernization/01-rediscovery/integrations.md:475`).
 No legacy sources or generated source-of-truth files were changed.
+
+## Phase 3b - INQACC acceptance-test prerequisite
+
+### INQACC-Q01 - Missing module business-rule and decision-coverage baseline
+
+**Status: open; blocks INQACC acceptance-test derivation.** This is the
+module-specific instance of AUD-Q04, not a resolution of that broader
+coverage question (`docs/modernization/01-rediscovery/open-questions.md:595`).
+The requested test-first prompt requires the module's business rules and
+Decision coverage table and instructs the author to stop on ambiguity
+(`.github/prompts/03b-rewrite-tests.prompt.md:10`,
+`.github/prompts/03b-rewrite-tests.prompt.md:21`).
+However, `business-rules.md` contains only the XFRFUN section and its
+coverage table, not INQACC rules or rule identifiers
+(`docs/modernization/01-rediscovery/business-rules.md:3`,
+`docs/modernization/01-rediscovery/business-rules.md:37`).
+INQACC's successfully parsed digest lists **11** decision points
+(`docs/modernization/00-source-of-truth/programs/INQACC.md:12`,
+`docs/modernization/00-source-of-truth/programs/INQACC.md:79`).
+ADR-002 explicitly requires complete inquiry rules and review of the
+special account-number and blank/low-value account-type outcomes
+(`docs/modernization/03a-architecture/target-architecture.md:55`;
+source decisions: `src/base/cics/cobol/INQACC.cbl:218`,
+`src/base/cics/cobol/INQACC.cbl:229`).
+
+**Question for the domain/CICS reviewer:** Who owns the INQACC rule
+baseline, and what are the accepted rule identifiers, expected outcomes
+and rule-to-decision mappings for all 11 digest decisions (including any
+additional source-only decisions or explicitly justified waivers)?
+Supply the INQACC section and Decision coverage table in
+`business-rules.md`, explicitly addressing `99999999`, missing accounts,
+blank/low-value account types, SQL failures and abend/rollback behavior.
+Resolve or explicitly scope the applicable existing AUD-Q03, DM-Q01 and
+DM-Q06 contract questions rather than inventing failure meanings,
+precision or NULL defaults
+(`docs/modernization/01-rediscovery/open-questions.md:579`,
+`docs/modernization/01-rediscovery/open-questions.md:561`,
+`docs/modernization/01-rediscovery/open-questions.md:566`).
+
+**Disposition:** Stopped before creating an acceptance matrix, executable
+tests or implementation. No business rules, expected outputs or waivers
+were invented. **0 tests authored; 0/11 digest decision points covered by
+acceptance tests; 1 new blocking question raised.** This is not a claim
+that INQACC has zero business rules or that 11 is a verified exhaustive
+source-level decision count. Resume phase 3b after the missing baseline
+and applicable contract questions are resolved.
