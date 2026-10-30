@@ -321,3 +321,191 @@ remainders (`src/base/cics/cobol/CREACC.cbl:1250`,
 Why are these absent from the parsed decision inventory despite the
 successful parse marker? As with XFRFUN-Q01, the marker is not a guarantee
 of complete decision coverage; generated files remain unchanged.
+
+## Integration-inventory pass
+
+The inventory is in `integrations.md`. **BNK1CCS, BNK1DCS, CRECUST,
+IBTRAN and BNKSTMTC have control flow unverified by tooling**
+(`docs/modernization/00-source-of-truth/index.md:16`). No live runtime,
+production traffic or installed-resource state was available for this pass.
+
+### INT-Q01 - Which interfaces are load-bearing in production?
+
+Checked-in CICS resources, REST assets and statement jobs establish
+interfaces, not deployed use (`.setup/zconfig/bank-of-z-definitions.yaml:842`,
+`src/api/src/main/zosAssets/INQACC/zosAsset.yaml:9`,
+`src/base/batch/jcl/BNKSTMTC.jcl:29`). Which are actually deployed and
+business-critical, with which callers, owners and service contracts?
+The inventory uses L? for load-bearing candidates and reserves legacy-only
+for evidenced setup/load/test/development roles. Neither absence of a caller
+nor a sample label proves an artifact can be retired.
+
+### INT-Q02 - Bank of Q and deployed MQ bridge routing
+
+The client names Bank of Q and selects local bindings-mode CICS or IMS
+paths (`src/base/mq/java/src/main/java/com/ibm/boq/TransferMoneyToBOZ.java:15`,
+`src/base/mq/java/src/main/java/com/ibm/boq/TransferMoneyToBOZ.java:72`,
+`src/base/mq/java/src/main/java/com/ibm/boq/TransferMoneyToBOZViaCICS.java:49`,
+`src/base/mq/java/src/main/java/com/ibm/boq/TransferMoneyToBOZViaIMS.java:81`).
+CICS MQMONITOR specifies CKBR, with bridge definitions said to come from
+DFHLIST (`.setup/zconfig/bank-of-z-definitions.yaml:1225`,
+`.setup/zconfig/bank-of-z-definitions.yaml:1228`); IMS request queues use
+IMSBRDG/XCF settings (`.setup/zconfig/mq-queue-manager.yaml:441`,
+`.setup/zconfig/mq-queue-manager.yaml:2993`).
+Is Bank of Q exclusively a demo peer? Which queue manager, CKBR/adapter
+resources, OTMA member and authorization definitions are installed?
+The client target strings DBCRFUN and IBTRAN are proved, but neither a
+real partner nor successful end-to-end routing is inferred.
+
+### INT-Q03 - JNI initialization and unresolved runtime pointers
+
+The five graph targets are JNI function pointers, not missing COBOL
+programs (`src/base/ims/copy/JNI.cpy:90`,
+`src/base/ims/copy/JNI.cpy:107`, `src/base/ims/copy/JNI.cpy:197`,
+`src/base/ims/copy/JNI.cpy:225`, `src/base/ims/copy/JNI.cpy:313`).
+IBTRAN addresses the JNI tables from JNIEnvPtr, requests InsertHist and
+insertHist(ByteBuffer), and calls the returned method ID
+(`src/base/ims/cobol/IBTRAN.cbl:508`,
+`src/base/ims/cobol/IBTRAN.cbl:511`,
+`src/base/ims/cobol/IBTRAN.cbl:516`,
+`src/base/ims/cobol/IBTRAN.cbl:540`,
+`src/base/ims/cobol/IBTRAN.cbl:554`,
+`src/base/ims/cobol/IBTRAN.cbl:490`).
+What initializes JNIEnvPtr and supplies the supported JVM invocation
+contract? What validates the function-table layout and exception handling
+on the deployed runtime? Source-level operation identities are explained;
+actual runtime addresses/class/method IDs remain unresolved. IBTRAN control
+flow is unverified by tooling; see DM-Q03/DM-Q08 for layout/durability.
+
+### INT-Q04 - Which login implementation is installed?
+
+The transaction maps IBLOGIN to IBLOGIN, and its PSB says LANG=PL/I
+(`.setup/jcl/ims/Ims-spoc.jcl.j2:56`,
+`src/base/ims/PSB/IBLOGIN.asm:13`); the PL/I procedure declares IBLOGIN
+(`src/base/ims/pli/IBLOGIN.pli:20`). The alternative COBOL member declares
+IBLOGIN1 (`src/base/ims/cobol/IBLOGIN1.cbl:3`).
+Which load module and PSB are installed in each environment? Is IBLOGIN1
+called under another definition or retained for comparison? No alias,
+dead-code conclusion or equivalence of message layouts is inferred.
+
+### INT-Q05 - IMS reference/status databases and generic PSBs
+
+IB and IBLOAD expose ACCTYPE, CUSTTYPE, TSTATTYP and TTYPE alongside the
+five handler/loader databases (`src/base/ims/PSB/IB.asm:13`,
+`src/base/ims/PSB/IB.asm:22`, `src/base/ims/PSB/IB.asm:31`,
+`src/base/ims/PSB/IB.asm:34`, `src/base/ims/PSB/IBLOAD.asm:13`).
+LOADTSTA inserts TSTAT, but no online TSTAT consumer is established by the
+handler calls (`src/base/ims/cobol/LOADTSTA.cbl:168`).
+Which applications use these databases and generic program IB, and where
+are their load/allocation and code-validation contracts? PSB sensitivity
+and seed records do not prove an executed application integration or a
+mandatory business lookup. Their online purpose remains unknown.
+
+### INT-Q06 - Placeholder OAuth and API support endpoints
+
+OpenAPI advertises OAuth2 URLs under auth.bankofz.example.com and a
+bankofz.example.com support mailbox
+(`src/api/src/main/api/openapi.yaml:790`,
+`src/api/src/main/api/openapi.yaml:791`,
+`src/api/src/main/api/openapi.yaml:10`).
+What identity provider, authorization configuration and support destination
+replace these placeholders? The declarations are not evidence of live
+authentication, an external service call or enforced scopes.
+
+### INT-Q07 - ITRL/ITRD EIB metadata versus transaction resources
+
+INQTRANL and INQTRAND providers set transidUsage=EIB_ONLY and transids
+ITRL/ITRD (`src/api/src/main/zosAssets/INQTRANL/zosAsset.yaml:7`,
+`src/api/src/main/zosAssets/INQTRAND/zosAsset.yaml:6`). The generated
+configuration table lists neither ID
+(`docs/modernization/00-source-of-truth/call-graph.md:153`).
+Are these intentionally metadata-only identifiers in every supported
+configuration, and what security/accounting definitions depend on them?
+No transaction-to-program binding is invented. Their same-spelled ABEND
+codes are separate uses (`src/base/cics/cobol/INQTRANL.cbl:561`,
+`src/base/cics/cobol/INQTRAND.cbl:338`).
+
+### INT-Q08 - Unestablished utility, bank-to-bank and support consumers
+
+GETCOMPY and GETSCODE have callable COMMAREAs and literal results, but no
+incoming edge in the generated graph
+(`src/base/cics/cobol/GETCOMPY.cbl:35`,
+`src/base/cics/cobol/GETCOMPY.cbl:38`,
+`src/base/cics/cobol/GETSCODE.cbl:35`,
+`src/base/cics/cobol/GETSCODE.cbl:39`).
+A configured BNK1B2B is labelled Bank to Bank Transfer, while BNK1B2M is
+explicitly excluded as temporary
+(`.setup/zconfig/bank-of-z-definitions.yaml:180`,
+`.setup/zconfig/bank-of-z-definitions.yaml:182`,
+`.setup/deploy/Development.yml:16`).
+Which callers/implementations, if any, use these interfaces? Do not infer
+that BNK1B2B is the MQ bridge or that these artifacts are dead.
+
+The support queue TRAA specifies transaction TRAA, without an established
+program mapping in this inventory
+(`.setup/zconfig/debug-definitions.yaml:1531`).
+Which installed resource resolves it, and which debugger/socket-support
+definitions are actually required? Support configuration is not proof of
+a banking integration.
+
+### INT-Q09 - CONTRADICTION: batch SYSOUT contract versus JCL allocation
+
+The COBOL statement job documents a SYSOUT diagnostic DD and RC12 when
+SYSOUT is unavailable (`src/base/batch/jcl/BNKSTMTC.jcl:16`,
+`src/base/batch/jcl/BNKSTMTC.jcl:19`), but its execution DD block supplies
+SYSIN, SYSPRINT, SYSUDUMP, CEEDUMP, SYSTSPRT and SYSTSIN, not SYSOUT
+(`src/base/batch/jcl/BNKSTMTC.jcl:42`).
+Source comments state DISPLAY routes to SYSOUT and assume reaching the
+probe means it is available (`src/base/batch/cobol/BNKSTMTC.cbl:563`).
+Does the supported runtime allocate it implicitly, require external
+allocation, or fail before a program RC can be returned? Which output
+and return-code contract do operations rely on? BNKSTMTC control flow
+is unverified by tooling; no z/OS execution was attempted.
+
+### INT-Q10 - Statement schedules and delivery are unknown
+
+Statement JCL has dated sample cards rather than scheduler definitions
+(`src/base/batch/jcl/BNKSTMTC.jcl:42`,
+`src/base/batch/jcl/BNKSTMTP.jcl:9`). What scheduler/calendar, cutoff,
+predecessors, retries, retention and report recipients apply? Are the
+COBOL and PL/I jobs alternatives or independently used?
+"Monthly" is report intent, not a proven installed cadence, and spool
+output is not proof of customer delivery. BNKSTMTC control flow is
+unverified by tooling.
+
+### INT-Q11 - CONTRADICTION: incomplete CRECUST command scan
+
+The digest reports only 20 EXEC CICS commands and its touchpoint table
+contains an apparent FETCH ANY command sourced from a DISPLAY message
+(`docs/modernization/00-source-of-truth/programs/CRECUST.md:13`,
+`docs/modernization/00-source-of-truth/programs/CRECUST.md:88`).
+Original source at that latter location is a diagnostic string
+`'EXEC CICS FETCH ANY worked, '`, not an executable command
+(`src/base/cics/cobol/CRECUST.cbl:1030`).
+Conversely, an actual GET CONTAINER using the fetched child channel occurs
+at `src/base/cics/cobol/CRECUST.cbl:1010`, absent from that table.
+Why does the scan omit the real command and recognize the DISPLAY text?
+The integration inventory cites the actual PUT/RUN/FETCH/GET statements
+directly, not the false-positive command. This is separate from the
+CUSTOMER INSERT omission already recorded in DM-Q07. Generated files
+were not edited; CRECUST control flow remains unverified by tooling.
+
+### CRECUST unresolved-target follow-through
+
+The earlier tooling-gap entry is retained as the original scanner result.
+This pass establishes a manual target-set inference: WS-CC-CNT is PIC 9,
+the loop varies 1 through 5, STRING builds OCR plus that digit, and RUN
+uses the constructed field (`src/base/cics/cobol/CRECUST.cbl:231`,
+`src/base/cics/cobol/CRECUST.cbl:620`,
+`src/base/cics/cobol/CRECUST.cbl:626`,
+`src/base/cics/cobol/CRECUST.cbl:687`).
+The five resource definitions map OCR1..OCR5 to CRDTAGY1..CRDTAGY5
+(`.setup/zconfig/bank-of-z-definitions.yaml:691`,
+`.setup/zconfig/bank-of-z-definitions.yaml:722`,
+`.setup/zconfig/bank-of-z-definitions.yaml:753`,
+`.setup/zconfig/bank-of-z-definitions.yaml:784`,
+`.setup/zconfig/bank-of-z-definitions.yaml:815`).
+The construction and definitions are proven source facts; the finite
+target-set association is manual inference, not a repaired parser graph
+or evidence of installed routing. CRECUST control flow remains unverified
+by tooling, and production agency use remains unknown under INT-Q01.
