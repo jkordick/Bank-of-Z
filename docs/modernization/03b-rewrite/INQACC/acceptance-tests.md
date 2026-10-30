@@ -2,12 +2,18 @@
 
 ## Scope and evidence
 
-Test specification only: no executable tests or implementation. The module is
-INQACC; the first-wave REST boundary is limited to the two inquiry GETs, not its
+The complete module specification is below. Slice 1 implements T01, T03,
+T13, T14 and T19 in
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:23`;
+execution evidence and deferred coverage are recorded in
+`docs/modernization/03b-rewrite/INQACC/parity.md:1`.
+The module is INQACC; the first-wave REST boundary is limited to the two inquiry
+GETs, not its
 shared CICS callers (`docs/modernization/03a-architecture/target-architecture.md:41`,
 `docs/modernization/03a-architecture/target-architecture.md:53`). These tests
 specify the module contract, not HTTP mappings, authorization or cutover approval.
-No existing `interface.md` is present.
+The logical contract and the still-disabled strangler switch are defined in
+`docs/modernization/03b-rewrite/INQACC/interface.md:1`.
 
 The rule baseline is INQACC-R01 through R08
 (`docs/modernization/01-rediscovery/business-rules.md:86`). Domain answers accept

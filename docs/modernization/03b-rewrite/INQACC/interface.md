@@ -1,12 +1,12 @@
 # INQACC interface contract
 
 **Status: interface definition complete under the INQACC-Q07 domain answer;
-implementation and cutover remain gated**
+slice 1 implemented locally; full implementation and cutover remain gated**
 (`docs/modernization/01-rediscovery/open-questions.md:1039`,
 `docs/modernization/03a-architecture/target-architecture.md:225`).
 The checked-in mappings are authoritative, including placeholders. Accepted
-undefined behavior is recorded below, not filled in. No implementation or
-routing change was made.
+undefined behavior is recorded below, not filled in. Slice evidence is in
+`docs/modernization/03b-rewrite/INQACC/parity.md:1`. No routing change was made.
 
 ## Scope and authority
 
@@ -356,3 +356,72 @@ substitution; relevant audit verdicts remain blocked
 `docs/modernization/03a-architecture/target-architecture.md:54`,
 `docs/modernization/02-substitution-audit/audit.md:24`,
 `docs/modernization/02-substitution-audit/audit.md:35`).
+
+## Local implementation boundary - slice 1
+
+The local workspace is `modern/inqacc/`, with standard
+`src/main/java` and `src/test/java` directories. Phase 3a selects Java/Spring
+Boot but no concrete project path or runtime versions
+(`docs/modernization/03a-architecture/target-architecture.md:5`).
+This slice uses a framework-independent Java core suitable for later Spring
+Boot composition, not a running Spring service or a selected deployment
+version. Run its complete local suite with Java 21+:
+
+```bash
+bash modern/inqacc/run-tests.sh
+```
+
+The runner compiles with `--release 21`, needs no downloaded dependencies and
+removes its temporary classes on exit (`modern/inqacc/run-tests.sh:5`,
+`modern/inqacc/run-tests.sh:13`).
+
+`Inqacc.inquire(Commarea)` returns an immutable logical COMMAREA snapshot;
+it does not mutate or replace any existing CICS caller
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`).
+Java component names correspond to the existing INQACC field suffixes:
+
+| Java component | Exact legacy field |
+|---|---|
+| eye | INQACC-EYE |
+| custno | INQACC-CUSTNO |
+| scode | INQACC-SCODE |
+| accno | INQACC-ACCNO |
+| accType | INQACC-ACC-TYPE |
+| intRate | INQACC-INT-RATE |
+| opened | INQACC-OPENED |
+| overdraft | INQACC-OVERDRAFT |
+| lastStmtDt | INQACC-LAST-STMT-DT |
+| nextStmtDt | INQACC-NEXT-STMT-DT |
+| availBal | INQACC-AVAIL-BAL |
+| actualBal | INQACC-ACTUAL-BAL |
+| success | INQACC-SUCCESS |
+| pcb1Pointer | INQACC-PCB1-POINTER |
+
+The mapping follows the base copybook, not a new external schema
+(`src/base/cics/copy/INQACC.cpy:8`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:86`).
+Identifiers, text, whole-unit overdraft and DDMMYYYY dates retain fixed-width
+strings; interest and balances use `BigDecimal`, with no floating-point
+conversion or rounding. The opaque pointer retains object identity. The
+supported domain is the specification's representable, non-NULL fixtures;
+this adds no validation policy for undefined inputs. Date overlays remain
+views of the existing eight-character values, not separate stored fields
+(`src/base/cics/copy/INQACC.cpy:15`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:45`).
+
+`Ports` separates cursor operations, supplied CICS context/clock, diagnostic
+LINK attempts and DISPLAY effects. Only test doubles exist. For T19 the core
+throws `Abend` carrying HRAC/NODUMP/CANCEL after the CLOSE diagnostic; this is
+an internal control-transfer representation, not a new return field or HTTP
+error (`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:65`).
+There is no commit, rollback, retry, real data adapter, native COMMAREA codec
+or REST projection in this slice. Binary CCSID/sign/pointer encoding and live
+unit-of-work equivalence are therefore not verified.
+
+Highest-account mode and OPEN/FETCH technical failures explicitly throw
+`UnsupportedOperationException` rather than returning success or silently
+delegating. These are development-only guards, **not legacy error semantics**
+or permission to route requests to this partial core
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:18`).
+The unchanged switch above remains disabled until full module, REST and
+operational acceptance; no legacy dependency is retired or replaced.
