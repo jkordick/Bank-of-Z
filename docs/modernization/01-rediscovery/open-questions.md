@@ -962,3 +962,78 @@ from the digest, but source-based testing is accepted by the INQACC-Q02
 answer (`docs/modernization/01-rediscovery/open-questions.md:916`).
 No decision was waived or declared dead.
 | INQACC-Q06 | The source wins: an empty highest-account lookup abends `HNCS` (`src/base/cics/cobol/INQACC.cbl:932`) — that is the contract. My INQACC-Q03 answer only covers the cases where the source actually returns success. General rule for all remaining INQACC ambiguity: whatever the source does is expected; do not stop for it again. |
+
+## INQACC-Q07 - Missing REST error mapping and conflicting wire declarations
+
+**Status: open; interface pass stopped at the REST boundary.** The source-level
+contract is retained as an explicitly incomplete draft in
+`docs/modernization/03b-rewrite/INQACC/interface.md`. No module behavior is being
+reopened: Q06's source-wins answer still applies
+(`docs/modernization/01-rediscovery/open-questions.md:964`).
+The interface prompt requires recording an unanswerable contract gap and
+stopping rather than inventing the missing behavior
+(`.github/prompts/03b-rewrite-interface.prompt.md:17`).
+
+Both first-wave GETs reference `response_400.yaml`, but neither operation
+directory contains that file. OpenAPI nevertheless declares BadRequest.
+The checked-in artifacts therefore do not establish the response body or
+runtime behavior for that missing mapping
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:7`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:7`,
+`src/api/src/main/api/openapi.yaml:495`,
+`src/api/src/main/api/openapi.yaml:592`).
+The existing 401/403/404/500 bodies contain placeholder constants
+`ERROR_CODE` and `Error message`, not per-abend or per-validation semantics;
+the selector's 200 condition checks COMMAREA existence or absence of an abend,
+not INQACC-SUCCESS
+(`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_500.yaml:6`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_500.yaml:6`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_mapping.yaml:3`,
+`src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/response_mapping.yaml:3`).
+Do not assume the runtime silently skips the missing file, or returns any
+particular error/status for it.
+
+There are also declaration-versus-executable-mapping contradictions to retain,
+not silently normalize:
+
+- The two path parameters are declared as strings with an alphanumeric example,
+  while request mappings directly assign accountId into `PIC 9(8)` without a
+  conversion expression. The effective rejection/coercion behavior for
+  nonnumeric, overlength or otherwise invalid path values is not defined by
+  INQACC's numeric input contract
+  (`src/api/src/main/api/openapi.yaml:485`,
+  `src/api/src/main/api/openapi.yaml:582`,
+  `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/request.yaml:10`,
+  `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D%2Fbalances/get/request.yaml:10`,
+  `src/base/cics/copy/INQACC.cpy:11`).
+- OpenAPI enumerates account types, but INQACC returns any nonblank/non-low-value
+  type and the response mapping projects it directly. The module acceptance
+  tests deliberately include an unlisted type; no new module validation is
+  authorized
+  (`src/api/src/main/api/openapi.yaml:1134`,
+  `src/base/cics/cobol/INQACC.cbl:229`,
+  `src/api/src/main/operations/%2Faccounts%2F%7BaccountId%7D/get/response_200.yaml:10`,
+  `docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:140`).
+- OpenAPI labels interest/balances as `double`, whereas the module's authoritative
+  declarations and accepted DM-Q01 answer require exact fixed-point decimals.
+  The rewrite must not use binary floating point to resolve that mismatch
+  (`src/api/src/main/api/openapi.yaml:1176`,
+  `src/api/src/main/api/openapi.yaml:1186`,
+  `src/api/src/main/api/openapi.yaml:1222`,
+  `src/base/cics/copy/INQACC.cpy:13`,
+  `src/base/cics/copy/INQACC.cpy:30`,
+  `docs/modernization/01-rediscovery/open-questions.md:920`).
+
+**Question for the API owner/runtime reviewer:** Provide the authoritative
+deployed mappings or observed contract for both GETs, including missing-400
+handling, invalid accountId conversion/rejection and error bodies/statuses.
+Confirm how declaration validation interacts with the accepted source outcomes
+and exact decimal JSON numbers. Should the checked-in mappings be reproduced
+literally, including their placeholders and missing-file behavior, or is another
+deployed artifact authoritative? No new validation, status, error body or
+deployment setting has been selected. This refines INT-Q01/AUD-Q03's existing
+per-operation acceptance gate; phase 3a expressly requires accepted wire
+contracts before substitution
+(`docs/modernization/03a-architecture/target-architecture.md:84`).
+
+**INQACC-Q07 — domain-expert answer (workshop, 2026-10-30):** The checked-in mappings are authoritative; reproduce them literally, placeholders included. The missing `response_400.yaml` means there is no defined 400 behavior: the rewrite does not invent one, it records the gap in `interface.md` as "legacy: undefined, not reproduced". Non-numeric / overlength `accountId`: same as INQACC-Q06, source wins — the request is treated exactly like the COMMAREA `PIC 9(8)` move would treat it; document it as a known gap, don't add validation. Account type: no enum validation (source wins). Money: exact fixed-point decimals in JSON, never binary floating point; the OpenAPI `double` label is a documentation defect. Do not stop again for the REST layer of INQACC.
