@@ -81,7 +81,7 @@ restarts through these active PERFORM ranges? The graph proves jump
 targets, not that every restart produces exactly one complete transfer
 and exactly two history rows. No runtime guarantee is inferred.
 
-### XFRFUN-Q04 - TO error reason and abend diagnostics disagree
+### XFRFUN-Q04 - CONTRADICTION: TO error reason and abend diagnostics disagree
 
 The digest preserves SELECT timeout tests using `13172894` but UPDATE
 timeout tests using `13172872`
@@ -509,3 +509,218 @@ The construction and definitions are proven source facts; the finite
 target-set association is manual inference, not a repaired parser graph
 or evidence of installed routing. CRECUST control flow remains unverified
 by tooling, and production agency use remains unknown under INT-Q01.
+
+## Consolidated artifact audit - 2026-10-30
+
+This register is the counting authority: **38 open question IDs**. Existing
+questions and their evidence above are retained; related subquestions count
+once per ID, not once per question mark. TOOL-Q01..Q05 give the existing
+parser gaps stable IDs. TOOL-Q06 records the missing-member evidence gap.
+ROUTE-Q01 consolidates the unresolved-target entry and its follow-through;
+it does not reopen the manually inferred OCR1..OCR5 construction.
+
+Blast radius identifies the **primary downstream acceptance gate affected
+by the answer**, not severity or a proposed implementation. Other affected
+phases are named in each row. Phase 2 means design/contracts, Phase 3 implementation
+and equivalence checks, and Phase 4 deployment/operations. Owners named
+below are requested reviewers, not discovered operational owners.
+
+| Primary blast radius | Open questions | Consequence of a wrong answer |
+|---|---:|---|
+| Phase 2 - design/contracts (then Phases 3 and 4) | 30 | Incorrect scope, data/interface contracts, or behavior baseline |
+| Phase 3 - implementation/equivalence (then Phase 4) | 1 | Incorrect JNI/runtime integration behavior |
+| Phase 4 - deployment/operations | 7 | Incorrect routing, identity/security configuration, diagnostics or scheduling |
+| **Total** | **38** | |
+
+**Contradictions: 11 distinct question IDs**: XFRFUN-Q01, XFRFUN-Q04,
+DM-Q01, DM-Q02, DM-Q03, DM-Q07, DM-Q11, INT-Q09, INT-Q11, AUD-Q01
+and AUD-Q02. Two mismatches are newly identified (AUD-Q01/AUD-Q02);
+XFRFUN-Q04's existing diagnostic disagreement is now explicitly labelled.
+These include source/source and documentation/wiring disagreements, not
+only contradictions with generated facts. A digest-summary omission is
+not, by itself, proof that the parser lost the corresponding branch.
+
+### Questions affecting Phase 2 - design/contracts
+
+For existing IDs, the earlier same-ID entry supplies the detailed source
+and source-of-truth evidence. Each row adds the specific audited artifact,
+an answerable review question and its downstream consequence.
+
+| ID | Specific artifact reference | Question for the responsible expert | Blast radius if wrong |
+|---|---|---|---|
+| TOOL-Q01 | `docs/modernization/01-rediscovery/repo-map.md:74`; `docs/modernization/01-rediscovery/integrations.md:396`; digest `docs/modernization/00-source-of-truth/programs/BNKSTMTC.md:10` | Has a batch reviewer signed off the statement paths described here despite the parser gap: yes/no; reviewer/evidence = ___? | Phase 2 statement/input/output baseline; Phase 3 equivalence. BNKSTMTC control flow is **unverified by tooling**. |
+| TOOL-Q02 | `docs/modernization/01-rediscovery/repo-map.md:21`; `docs/modernization/01-rediscovery/integrations.md:39`; digest `docs/modernization/00-source-of-truth/programs/BNK1CCS.md:10` | Has a CICS reviewer signed off the create-customer screen paths despite the parser gap: yes/no; evidence = ___? | Phase 2 customer-entry contract; Phase 3 screen-path equivalence. BNK1CCS control flow is **unverified by tooling**. |
+| TOOL-Q03 | `docs/modernization/01-rediscovery/repo-map.md:24`; `docs/modernization/01-rediscovery/integrations.md:42`; digest `docs/modernization/00-source-of-truth/programs/BNK1DCS.md:10` | Has a CICS reviewer signed off customer display/update/delete paths despite the parser gap: yes/no; evidence = ___? | Phase 2 maintenance/deletion contract; Phase 3 equivalence. BNK1DCS control flow is **unverified by tooling**. |
+| TOOL-Q04 | `docs/modernization/01-rediscovery/data-model.md:272`; `docs/modernization/01-rediscovery/integrations.md:89`; digest `docs/modernization/00-source-of-truth/programs/CRECUST.md:10` | Has a domain/CICS reviewer signed off customer validation, allocation and credit-response paths: yes/no; evidence = ___? | Phase 2 customer/credit contract; Phase 3 equivalence. CRECUST control flow is **unverified by tooling**. |
+| TOOL-Q05 | `docs/modernization/01-rediscovery/data-model.md:279`; `docs/modernization/01-rediscovery/integrations.md:301`; digest `docs/modernization/00-source-of-truth/programs/IBTRAN.md:10` | Has an IMS reviewer signed off transaction/update/history paths despite the parser gap: yes/no; evidence = ___? | Phase 2 transaction/history baseline; Phase 3 equivalence. IBTRAN control flow is **unverified by tooling**. |
+| TOOL-Q06 | `docs/modernization/01-rediscovery/repo-map.md:164`; `docs/modernization/00-source-of-truth/index.md:67` | Authoritative generated BMS symbolic maps and IBM-supplied member versions, with the reviewer responsible for validating omitted fields = ___? | Phase 2 field/interface baseline; Phase 3 layout and screen equivalence. Empty parser stubs do not verify missing fields. |
+| XFRFUN-Q01 | `docs/modernization/01-rediscovery/business-rules.md:84` | Does the tooling maintainer confirm that the rollback-response IF at source line 1966 is missing from the 40-decision digest: yes/no; accepted coverage evidence = ___? | Phase 2 decision completeness; Phase 3 rollback-error equivalence. **CONTRADICTION** retained. |
+| XFRFUN-Q02 | `docs/modernization/01-rediscovery/business-rules.md:23` | Is arithmetic/UPDATE after a TO SELECT error other than +100/-911 supported behavior: yes/no; permitted host-variable state/outcome = ___? | Phase 2 failure contract; Phase 3 balance/error equivalence. |
+| XFRFUN-Q03 | `docs/modernization/01-rediscovery/business-rules.md:25` | Supported compiler/runtime and approved PERFORM-return behavior after these retry jumps = ___; exactly one transfer/two history rows guaranteed: yes/no? | Phase 2 retry/atomicity contract; Phase 3 duplicate-effect checks. |
+| XFRFUN-Q05 | `docs/modernization/01-rediscovery/business-rules.md:33` | Supported invocation delivering AFCR/AFCS/AFCT = ___ (or none); caller discriminator for overloaded failure code 2 = ___? | Phase 2 reachable failure contract; Phase 3 storm-drain equivalence. Not confirmed dead. |
+| DM-Q01 | `docs/modernization/01-rediscovery/data-model.md:61` | Deployed/precompiled ACCOUNT interest/balance precision = ___; smaller ACCDB2 declaration obsolete: yes/no? | Phase 2 numeric/schema contract; Phase 3 precision equivalence. **CONTRADICTION** retained. |
+| DM-Q02 | `docs/modernization/01-rediscovery/data-model.md:125`; `docs/modernization/01-rediscovery/integrations.md:190` | Authoritative CONTROL qualification and CONTROL_NAME nullability per supported environment = ___? | Phase 2 allocation/schema contract; Phase 3 counter behavior. **CONTRADICTION** retained. |
+| DM-Q03 | `docs/modernization/01-rediscovery/data-model.md:184`; `docs/modernization/01-rediscovery/data-model.md:236` | Installed IMS HISTORY segment length = ___ bytes; BALANCE-HIST persisted by IMS: yes/no; runtime evidence = ___? | Phase 2 history layout; Phase 3 byte-level equivalence. **CONTRADICTION** retained. IBTRAN control flow is **unverified by tooling**. |
+| DM-Q04 | `docs/modernization/01-rediscovery/data-model.md:180`; `docs/modernization/01-rediscovery/data-model.md:182` | ACCNUM means ___; duplicate customer/account pairs allowed: yes/no; shared account ownership allowed: yes/no? | Phase 2 identity/cardinality contract; Phase 3 traversal equivalence. |
+| DM-Q05 | `docs/modernization/01-rediscovery/data-model.md:251` | Supported CICS/IMS identity crosswalk and balance/status/address correspondence = ___ (or no cross-system contract)? | Phase 2 entity boundaries; Phase 3 cross-system equivalence. |
+| DM-Q06 | `docs/modernization/01-rediscovery/data-model.md:42`; `docs/modernization/01-rediscovery/data-model.md:63` | SQL NULLs forbidden externally: yes/no; existing NULL handling and permitted negative/nonnumeric field values = ___? | Phase 2 nullability/value domains; Phase 3 edge-case equivalence. |
+| DM-Q07 | `docs/modernization/01-rediscovery/data-model.md:341`; `docs/modernization/01-rediscovery/integrations.md:207` | Does the tooling maintainer confirm the omitted CUSTOMER INSERT: yes/no; accepted complete write inventory = ___? | Phase 2 customer-write inventory; Phase 3 persistence equivalence. **CONTRADICTION** retained. CRECUST control flow is **unverified by tooling**. |
+| DM-Q08 | `docs/modernization/01-rediscovery/data-model.md:236`; `docs/modernization/01-rediscovery/integrations.md:317` | Runtime owner/transaction contract coordinating IMS and DB2 history = ___; authoritative store on partial failure = ___? | Phase 2 durability/atomicity contract; Phase 3 failure equivalence. IBTRAN control flow is **unverified by tooling**. |
+| DM-Q09 | `docs/modernization/01-rediscovery/data-model.md:279`; `docs/modernization/01-rediscovery/data-model.md:346` | Supported transaction types/case/amount validation layer = ___; enforced maximum summary size and behavior above six accounts = ___? | Phase 2 request/capacity contract; Phase 3 boundary equivalence. IBTRAN control flow is **unverified by tooling**. |
+| DM-Q10 | `docs/modernization/01-rediscovery/data-model.md:89`; `docs/modernization/01-rediscovery/data-model.md:303` | PROCTRAN locator uniqueness guaranteed operationally: yes/no; guarantee = ___; OCS/SODD meaning and supported producer = ___? | Phase 2 event identity/code domain; Phase 3 lookup and history equivalence. |
+| DM-Q11 | `docs/modernization/01-rediscovery/data-model.md:270` | Intended next-statement date for DB2 and returned record respectively = ___; omitted leap-year IF decisions acknowledged by tooling maintainer: yes/no? | Phase 2 date/decision baseline; Phase 3 leap-year equivalence. **CONTRADICTION** retained. |
+| INT-Q01 | `docs/modernization/01-rediscovery/integrations.md:5` | Per inventory entry: deployed environments, accountable owner, caller, purpose, criticality and service contract = ___ (or explicitly unused, with evidence)? | Phase 2 scope/dependency ownership; Phases 3/4 integration and cutover assumptions. Covers all entries, including CDN/JDBC/browser/support dependencies, not just banking programs. |
+| INT-Q04 | `docs/modernization/01-rediscovery/repo-map.md:130`; `docs/modernization/01-rediscovery/integrations.md:299` | Installed IBLOGIN module/PSB per environment = ___; supported IBLOGIN1 caller = ___ (or none)? | Phase 2 login/message contract; Phase 3 authentication equivalence. No alias/dead-code inference. |
+| INT-Q05 | `docs/modernization/01-rediscovery/integrations.md:263`; `docs/modernization/01-rediscovery/data-model.md:213` | Executed consumers/owners of TSTAT, the four reference databases and generic IB/IBLOAD views = ___; code-validation contract = ___? | Phase 2 database/domain scope; Phase 3 lookup equivalence. |
+| INT-Q08 | `docs/modernization/01-rediscovery/integrations.md:109`; `docs/modernization/01-rediscovery/integrations.md:128`; `docs/modernization/01-rediscovery/integrations.md:158` | Supported callers/implementations for GETCOMPY, GETSCODE, BNK1B2B/BNK1B2M and TRAA = ___; required debugger/socket definitions = ___? Also EQAL -> CSSL consumer, direction, owner and purpose = ___ (`docs/modernization/01-rediscovery/integrations.md:160`; `.setup/zconfig/debug-definitions.yaml:1483`). | Phase 2 interface scope; Phase 4 support-resource dependencies. Exclusion/no incoming graph edge does not confirm dead code. |
+| INT-Q11 | `docs/modernization/01-rediscovery/integrations.md:89`; `docs/modernization/01-rediscovery/integrations.md:510` | Does the tooling maintainer confirm that DISPLAY text is scanned as a command while GET CONTAINER is omitted: yes/no; accepted command inventory = ___? | Phase 2 credit-response dependency baseline; Phase 3 error-path equivalence. **CONTRADICTION** retained. CRECUST control flow is **unverified by tooling**. |
+| AUD-Q01 | `docs/modernization/01-rediscovery/data-model.md:276` versus `docs/modernization/01-rediscovery/business-rules.md:9` and `docs/modernization/01-rediscovery/business-rules.md:13` | Should the data-model contract describe identity comparison **after both sort codes are overwritten**, making equal numbers sufficient for a positive transfer's SAME abend: yes/no? | Phase 2 effective account identity; Phase 3 same-number/different-input-sort-code equivalence. **CONTRADICTION**, detailed below. |
+| AUD-Q02 | `docs/modernization/01-rediscovery/data-model.md:268`; digest `docs/modernization/00-source-of-truth/programs/CREACC.md:137` | Is the EVALUATE summary intentionally abbreviated: yes/no; approved evidence for LOAN and WHEN OTHER branches = ___? | Phase 2 accepted account-type/decision contract; Phase 3 rejection equivalence. **CONTRADICTION** in summary completeness, detailed below. |
+| AUD-Q03 | `docs/modernization/01-rediscovery/data-model.md:274`; `docs/modernization/01-rediscovery/data-model.md:314`; `docs/modernization/01-rediscovery/data-model.md:318`; `docs/modernization/01-rediscovery/integrations.md:418` | Approved per-interface failure/status-code matrix, retryability and consumer action = ___; facility 496/NONE business origin and other supported facility values = ___; supported CUSTOMER-STATUS transitions and PROCTRAN logical-delete consumers = ___? | Phase 2 result/code/lifecycle contracts; Phase 3 error and state-transition equivalence. The operational inventory names code families but does not supply these contracts. |
+| AUD-Q04 | `docs/modernization/01-rediscovery/business-rules.md:3`; `docs/modernization/01-rediscovery/business-rules.md:84`; `docs/modernization/01-rediscovery/data-model.md:267` | Is business-rule/decision coverage intentionally limited to XFRFUN: yes/no; required remaining program scope and reviewer = ___; IBACSUM RULES-CHECK inactive in every supported build: yes/no, evidence = ___? | Phase 2 completeness acceptance; Phase 3 equivalence scope. No coverage table for other programs is not the same as zero uncovered decisions; no dead-code conclusion is drawn. |
+
+### Question affecting Phase 3 - implementation/equivalence
+
+| ID | Specific artifact reference | Question for the responsible expert | Blast radius if wrong |
+|---|---|---|---|
+| INT-Q03 | `docs/modernization/01-rediscovery/integrations.md:307`; `docs/modernization/01-rediscovery/integrations.md:315`; `docs/modernization/01-rediscovery/integrations.md:476` | Supported JVM/JNI initialization owner, JNIEnvPtr setup, ABI/function-table version and exception-checking contract = ___? | Phase 3 JNI invocation/exception equivalence; Phase 4 runtime/library wiring. All five pointer targets remain runtime-unresolved; IBTRAN control flow is **unverified by tooling**. |
+
+### Questions affecting Phase 4 - deployment/operations
+
+| ID | Specific artifact reference | Question for the responsible expert | Blast radius if wrong |
+|---|---|---|---|
+| XFRFUN-Q04 | `docs/modernization/01-rediscovery/business-rules.md:27`; `docs/modernization/01-rediscovery/integrations.md:425` | Approved SELECT/UPDATE timeout reason numbers and recorded/raised abend-code mapping = ___; mismatches deliberate: yes/no? | Phase 4 monitoring/runbook diagnosis; Phase 3 diagnostic-output equivalence also inherits the answer. **CONTRADICTION** retained. |
+| INT-Q02 | `docs/modernization/01-rediscovery/integrations.md:382`; `docs/modernization/01-rediscovery/integrations.md:386`; `docs/modernization/01-rediscovery/integrations.md:392` | Bank of Q demo-only: yes/no; installed queue manager, CKBR/adapter, OTMA/XCF routing, authorization and accountable operator = ___? | Phase 4 partner routing/access and end-to-end operation. IBTRAN control flow is **unverified by tooling**. |
+| INT-Q06 | `docs/modernization/01-rediscovery/integrations.md:375`; `docs/modernization/01-rediscovery/integrations.md:376` | Deployed identity provider, enforced authorization/scopes, support destination and owner = ___? | Phase 4 authentication/authorization and operational support; placeholder URLs are not live controls. |
+| INT-Q07 | `docs/modernization/01-rediscovery/integrations.md:366` | ITRL/ITRD intentionally EIB-only in every supported environment: yes/no; dependent security/accounting resources and UPDCUST's omitted-metadata behavior = ___? | Phase 4 transaction identity/security/accounting configuration. No transaction-to-program binding inferred. |
+| INT-Q09 | `docs/modernization/01-rediscovery/integrations.md:402` | SYSOUT allocated implicitly, externally, or missing = ___; actual unavailable-output behavior/return code = ___? | Phase 4 batch diagnostics/output allocation. **CONTRADICTION** retained; BNKSTMTC control flow is **unverified by tooling**. |
+| INT-Q10 | `docs/modernization/01-rediscovery/integrations.md:408`; `docs/modernization/01-rediscovery/integrations.md:412` | Installed statement-job variant(s), scheduler/calendar, cutoff, predecessors, retries, retention and delivery recipients/channel = ___? | Phase 4 statement schedule, recovery and delivery. BNKSTMTC control flow is **unverified by tooling**; monthly intent does not prove cadence. |
+| ROUTE-Q01 | `docs/modernization/01-rediscovery/repo-map.md:116`; `docs/modernization/01-rediscovery/integrations.md:475`; `docs/modernization/00-source-of-truth/call-graph.md:326` | Are OCR1..OCR5 installed and routed to CRDTAGY1..5 in each supported environment: yes/no; overrides/operator/evidence = ___? | Phase 4 credit-agency routing; installed execution remains unresolved despite the manual finite-target inference. CRECUST control flow is **unverified by tooling**. |
+
+### Newly identified contradictions and coverage gaps
+
+**AUD-Q01 - CONTRADICTION: effective transfer identity is inconsistent
+across artifacts.** The data model says the check is composite, "not simply
+equal account numbers" (`docs/modernization/01-rediscovery/data-model.md:276`).
+R01/R03 instead state that both supplied sort codes are overwritten before
+the identity gate (`docs/modernization/01-rediscovery/business-rules.md:9`,
+`docs/modernization/01-rediscovery/business-rules.md:13`). The digest quotes
+the composite IF (`docs/modernization/00-source-of-truth/programs/XFRFUN.md:99`),
+but the focused source excerpt also shows `MOVE SORTCODE TO COMM-FSCODE
+COMM-TSCODE` before the amount gate (`src/base/cics/cobol/XFRFUN.cbl:281`,
+`src/base/cics/cobol/XFRFUN.cbl:289`, `src/base/cics/cobol/XFRFUN.cbl:316`).
+The IF text is accurate; the data model's unqualified behavioral conclusion
+omits the normalization. Example to approve: a positive transfer with equal
+account numbers but different supplied sort codes still takes SAME.
+The source is not changed, and the disagreeing artifacts are not silently
+reconciled.
+
+**AUD-Q02 - CONTRADICTION: CREACC decision summary omits LOAN and
+WHEN OTHER.** The data model includes LOAN and failure A
+(`docs/modernization/01-rediscovery/data-model.md:268`).
+The digest's EVALUATE entry displays only ISA/MORTGAGE/SAVING/CURRENT,
+ending mid-literal (`docs/modernization/00-source-of-truth/programs/CREACC.md:137`).
+The cited source additionally contains `WHEN ... (1:4) = 'LOAN'`, then
+`WHEN OTHER` setting N/A (`src/base/cics/cobol/CREACC.cbl:1314`,
+`src/base/cics/cobol/CREACC.cbl:1316`,
+`src/base/cics/cobol/CREACC.cbl:1318`). This is an incomplete digest
+summary, not evidence that LOAN is unsupported or that parsing omitted
+those branches. It is separate from DM-Q11's missing nested IF decisions.
+
+**AUD-Q03 - code-contract gaps, not invented meanings.** The artifacts
+identify response fields and operational code groups, but do not give a
+per-operation failure-code/action matrix
+(`docs/modernization/01-rediscovery/integrations.md:418`,
+`docs/modernization/01-rediscovery/integrations.md:428`).
+For example, the digest records facility-496 gates
+(`docs/modernization/00-source-of-truth/programs/DBCRFUN.md:78`,
+`docs/modernization/00-source-of-truth/programs/DBCRFUN.md:79`);
+the focused source comment calls 496 `NONE` and contrasts payment with
+teller, while branches set failure 4 for loan/mortgage and failure 3 for
+insufficient funds (`src/base/cics/cobol/DBCRFUN.cbl:323`,
+`src/base/cics/cobol/DBCRFUN.cbl:325`,
+`src/base/cics/cobol/DBCRFUN.cbl:330`,
+`src/base/cics/cobol/DBCRFUN.cbl:344`). Those literal observations do not
+establish every supported caller/facility or recovery policy. Likewise,
+named status conditions and a logical-delete overlay do not specify
+supported transitions or consumers
+(`docs/modernization/01-rediscovery/data-model.md:314`,
+`docs/modernization/01-rediscovery/data-model.md:315`).
+The already-open OCS expansion/producer question remains DM-Q10 rather
+than being counted twice.
+
+**AUD-Q04 - coverage outside the transfer slice is not established.**
+The sole Decision coverage table explicitly covers XFRFUN, reporting
+33 covered / 7 technical / 0 uncovered plus one source-only technical
+decision (`docs/modernization/01-rediscovery/business-rules.md:37`,
+`docs/modernization/01-rediscovery/business-rules.md:84`).
+That is not a repository-wide completeness result. For example, the
+IBACSUM digest lists `IF CA-CUSTID < 16` in RULES-CHECK but shows no
+incoming PERFORM to that paragraph
+(`docs/modernization/00-source-of-truth/programs/IBACSUM.md:20`,
+`docs/modernization/00-source-of-truth/programs/IBACSUM.md:58`).
+The focused traversal excerpt contains a commented-out PERFORM
+(`src/base/ims/cobol/IBACSUM.cbl:223`). This establishes a review
+candidate, not that the paragraph is dead in every supported build.
+No whole-program rereading was used to infer reachability.
+
+### Citation spot-check ledger
+
+These are checks actually made against individual digests and focused
+original-source excerpts. **17 citation checks** are recorded below;
+multiple observations of one issue count as only one contradiction ID.
+DDL/JCL/DBD and Java semantics remain outside parser scope.
+
+| # | Audited artifact citation | Digest / source-of-truth check | Original-source check and result |
+|---|---|---|---|
+| 1 | `docs/modernization/01-rediscovery/business-rules.md:11` | Amount IF present at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:95` | `src/base/cics/cobol/XFRFUN.cbl:289` sets N/4 at <=0: confirmed. |
+| 2 | `docs/modernization/01-rediscovery/business-rules.md:13`; `docs/modernization/01-rediscovery/data-model.md:276` | Same-account IF present at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:99` | `src/base/cics/cobol/XFRFUN.cbl:281` and `src/base/cics/cobol/XFRFUN.cbl:316`: prior overwrite confirms R01/R03; data-model qualification mismatch is AUD-Q01. |
+| 3 | `docs/modernization/01-rediscovery/business-rules.md:25` | Reason/counter decisions at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:126` and `docs/modernization/00-source-of-truth/programs/XFRFUN.md:127` | `src/base/cics/cobol/XFRFUN.cbl:1199` and `src/base/cics/cobol/XFRFUN.cbl:1203`: reason 13172872 and increment-before-<6 confirmed; runtime guarantee remains XFRFUN-Q03. |
+| 4 | `docs/modernization/01-rediscovery/business-rules.md:27` | UPDATE timeout test at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:136` | `src/base/cics/cobol/XFRFUN.cbl:1485`: 13172872 confirmed, not silently changed to SELECT's timeout reason. Existing XFRFUN-Q04. |
+| 5 | `docs/modernization/01-rediscovery/integrations.md:425` | UPDATE ABEND touchpoint at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:223` | `src/base/cics/cobol/XFRFUN.cbl:1522` records RUF2; `src/base/cics/cobol/XFRFUN.cbl:1546` raises RUF3. Existing XFRFUN-Q04, not a second contradiction. |
+| 6 | `docs/modernization/01-rediscovery/business-rules.md:84` | AH010 has only two decisions at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:83`; list at `docs/modernization/00-source-of-truth/programs/XFRFUN.md:151` | `src/base/cics/cobol/XFRFUN.cbl:1966`: extra rollback IF exists. Existing XFRFUN-Q01 confirmed. |
+| 7 | `docs/modernization/01-rediscovery/integrations.md:233` | WRITE touchpoint at `docs/modernization/00-source-of-truth/programs/ABNDPROC.md:49` | `src/base/cics/cobol/ABNDPROC.cbl:141`: ABNDFILE/record key confirmed. |
+| 8 | `docs/modernization/01-rediscovery/business-rules.md:35` | Failure IF at `docs/modernization/00-source-of-truth/programs/ABNDPROC.md:41` | `src/base/cics/cobol/ABNDPROC.cbl:149`: failed write DISPLAYs and RETURNs, not guaranteed persistence: confirmed. |
+| 9 | `docs/modernization/01-rediscovery/data-model.md:267` | Count decision at `docs/modernization/00-source-of-truth/programs/CREACC.md:105` | `src/base/cics/cobol/CREACC.cbl:380`: >9, not >=9; N/8 confirmed. |
+| 10 | `docs/modernization/01-rediscovery/data-model.md:268` | EVALUATE summary at `docs/modernization/00-source-of-truth/programs/CREACC.md:137` | `src/base/cics/cobol/CREACC.cbl:1309` through `src/base/cics/cobol/CREACC.cbl:1318`: LOAN/OTHER present but not displayed in digest; AUD-Q02. |
+| 11 | `docs/modernization/01-rediscovery/data-model.md:270` | Only EVALUATE in CD010 at `docs/modernization/00-source-of-truth/programs/CREACC.md:133` | `src/base/cics/cobol/CREACC.cbl:1250`, `src/base/cics/cobol/CREACC.cbl:1254`, `src/base/cics/cobol/CREACC.cbl:1259`: three nested IFs absent from digest. Existing DM-Q11. |
+| 12 | `docs/modernization/01-rediscovery/integrations.md:241` | DL/I touchpoints at `docs/modernization/00-source-of-truth/programs/IBACSUM.md:71` and `docs/modernization/00-source-of-truth/programs/IBACSUM.md:72` | `src/base/ims/cobol/IBACSUM.cbl:212` and `src/base/ims/cobol/IBACSUM.cbl:218`: PCB-selected CUSTACCS traversal and ACCOUNT GHU confirmed. |
+| 13 | `docs/modernization/01-rediscovery/integrations.md:207` | CUSTOMER row `docs/modernization/00-source-of-truth/data-access.md:11`; no matching INSERT in `docs/modernization/00-source-of-truth/programs/CRECUST.md:72` | `src/base/cics/cobol/CRECUST.cbl:1219`: CUSTOMER INSERT exists. Existing DM-Q07; control flow **unverified by tooling**. |
+| 14 | `docs/modernization/01-rediscovery/integrations.md:89` | False DISPLAY command at `docs/modernization/00-source-of-truth/programs/CRECUST.md:88`; GET missing | `src/base/cics/cobol/CRECUST.cbl:1010` is GET; `src/base/cics/cobol/CRECUST.cbl:1030` is DISPLAY. Existing INT-Q11; control flow **unverified by tooling**. |
+| 15 | `docs/modernization/01-rediscovery/data-model.md:61` | DDL is outside parser scope (`docs/modernization/00-source-of-truth/index.md:106`) | `.setup/jcl/cics/Db2-create.j2:30` and `.setup/jcl/cics/Db2-create.j2:35` versus `src/base/cics/copy/ACCDB2.cpy:13` and `src/base/cics/copy/ACCDB2.cpy:18`: precision disagreement confirmed, DM-Q01. |
+| 16 | `docs/modernization/01-rediscovery/data-model.md:125` | CONTROL map at `docs/modernization/00-source-of-truth/data-access.md:10` does not settle qualification/nullability | `.setup/jcl/cics/Db2-create.j2:67` versus `src/base/cics/copy/CONTDB2.cpy:7`: BANKZ/nullable versus STTESTER/NOT NULL confirmed, DM-Q02. |
+| 17 | `docs/modernization/01-rediscovery/integrations.md:402` | Parser gap at `docs/modernization/00-source-of-truth/programs/BNKSTMTC.md:10`; JCL outside scope | `src/base/batch/jcl/BNKSTMTC.jcl:16` documents SYSOUT; execution DDs at `src/base/batch/jcl/BNKSTMTC.jcl:42` do not allocate it. Existing INT-Q09; runtime allocation unknown, control flow **unverified by tooling**. |
+
+Additional retained source/source check: HISTORY's `BYTES=(56)` at
+`src/base/ims/DBD/HISTORY.asm:33` versus the seventh packed-decimal field
+at `src/base/ims/cobol/IBTRAN.cbl:95` confirms DM-Q03's layout
+disagreement, not a runtime truncation conclusion. IBTRAN control flow
+is **unverified by tooling**.
+
+### Sweep disposition
+
+No affirmative rule phrased "appears to", "seems to" or "probably", and no
+literal `UNCOVERED` decision-table entry, was found in the audited artifacts.
+The only decision table's zero-uncovered result is limited to XFRFUN
+(`docs/modernization/01-rediscovery/business-rules.md:84`); AUD-Q04 retains
+the broader coverage question. No artifact asserting that a candidate
+branch/interface is definitely dead was found; XFRFUN-Q05, INT-Q04,
+INT-Q08 and AUD-Q04 retain the relevant confirmation questions.
+
+The artifacts relying on parser-gap programs carry explicit warnings:
+`docs/modernization/01-rediscovery/repo-map.md:5`,
+`docs/modernization/01-rediscovery/data-model.md:34`,
+`docs/modernization/01-rediscovery/integrations.md:9`, and the tooling-gap
+section of this file. `business-rules.md` restricts its claims to XFRFUN
+and ABNDPROC (`docs/modernization/01-rediscovery/business-rules.md:5`,
+`docs/modernization/01-rediscovery/business-rules.md:35`); no missing
+parser-gap disclaimer was identified there.
+
+All unknown ownership/production-use classifications roll up to INT-Q01;
+utility/support consumers to INT-Q08; reference consumers to INT-Q05;
+placeholder authentication to INT-Q06; five JNI pointers to INT-Q03;
+and installed OCR routing to ROUTE-Q01. Historical scanner-unresolved
+wording in the orientation does not negate the explicitly qualified
+manual target inference (`docs/modernization/01-rediscovery/repo-map.md:116`,
+`docs/modernization/01-rediscovery/integrations.md:475`).
+No legacy sources or generated source-of-truth files were changed.
