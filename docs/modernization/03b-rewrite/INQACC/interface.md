@@ -357,7 +357,7 @@ substitution; relevant audit verdicts remain blocked
 `docs/modernization/02-substitution-audit/audit.md:24`,
 `docs/modernization/02-substitution-audit/audit.md:35`).
 
-## Local implementation boundary - slices 1 and 2
+## Local implementation boundary - slices 1 through 3
 
 The local workspace is `modern/inqacc/`, with standard
 `src/main/java` and `src/test/java` directories. Phase 3a selects Java/Spring
@@ -438,9 +438,20 @@ but no real SQL adapter or deployed ordering/isolation behavior is verified
 (`src/base/cics/cobol/INQACC.cbl:843`,
 `src/base/cics/cobol/INQACC.cbl:869`,
 `modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:309`).
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:396`).
 The public `inquire(Commarea)` entry, complete logical record shape, widths,
 exact scale-2 amounts, success flags and pointer identity are unchanged
 (`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`,
 `modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:110`,
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:242`).
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:329`).
+
+Slice 3 adds only acceptance tests for R04/R05; the production core and its
+public surface are unchanged. The new ordinary-mode fixtures verify suppression
+of all-space/all-low-value retrieved types, exact copying of other types and
+eyecatchers, numeric limits and zero/negative-cent values, and leap-day/year-boundary
+date ordering. Each compares the complete logical record, field widths,
+scale-2 decimals, success Y and unchanged pointer identity
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:97`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:162`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:329`).
+No fail-code field, validation rule, routing change or adapter is introduced.

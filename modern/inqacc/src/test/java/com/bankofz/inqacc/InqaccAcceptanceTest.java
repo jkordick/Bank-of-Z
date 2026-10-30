@@ -25,9 +25,15 @@ public final class InqaccAcceptanceTest {
         run("INQACC-T01", InqaccAcceptanceTest::ordinaryInquiry);
         run("INQACC-T02", InqaccAcceptanceTest::highestAccount);
         run("INQACC-T03", InqaccAcceptanceTest::missingAccount);
+        run("INQACC-T04", () -> ordinaryType("        ", true));
+        run("INQACC-T05", () -> ordinaryType("\0".repeat(8), true));
         run("INQACC-T06", () -> highestSuppressedType("        "));
         run("INQACC-T07", () -> highestSuppressedType("\0".repeat(8)));
+        run("INQACC-T08", () -> ordinaryType("MYSTERY!", false));
+        run("INQACC-T09", InqaccAcceptanceTest::ordinaryEyecatcher);
+        run("INQACC-T10", InqaccAcceptanceTest::ordinaryNumericLimits);
         run("INQACC-T11", InqaccAcceptanceTest::highestBalanceLimits);
+        run("INQACC-T12", InqaccAcceptanceTest::ordinaryZeroAndNegativeCent);
         run("INQACC-T13", () -> ordinaryBoundary("00000000"));
         run("INQACC-T14", () -> ordinaryBoundary("99999998"));
         run("INQACC-T15", InqaccAcceptanceTest::highestSentinelRow);
@@ -39,10 +45,12 @@ public final class InqaccAcceptanceTest {
         run("INQACC-T32", () -> highestFailure(923));
         run("INQACC-T36", () -> highestFailure(1));
         run("INQACC-T38", () -> highestFailure(-305));
+        run("INQACC-T47", () -> ordinaryType(" X      ", false));
+        run("INQACC-T48", InqaccAcceptanceTest::ordinaryDateBoundaries);
         if (failures != 0) {
-            throw new AssertionError(failures + " of 17 INQACC acceptance tests failed");
+            throw new AssertionError(failures + " of 25 INQACC acceptance tests failed");
         }
-        System.out.println("17 INQACC acceptance tests passed");
+        System.out.println("25 INQACC acceptance tests passed");
     }
 
     private static void ordinaryInquiry() {
@@ -83,6 +91,85 @@ public final class InqaccAcceptanceTest {
         equal(populated(accno), actual, "ordinary boundary account");
         equal(ordinaryEvents(accno), ports.events, "not highest-account mode");
         same(POINTER, actual.pcb1Pointer(), "opaque pointer");
+        assertShape(actual);
+    }
+
+    private static void ordinaryType(String type, boolean suppressed) {
+        AccountRow r = row("987654", "00000042");
+        AccountRow selected = new AccountRow(
+                r.eye(), r.custno(), r.scode(), r.accno(), type, r.intRate(),
+                r.opened(), r.overdraft(), r.lastStmtDt(), r.nextStmtDt(),
+                r.availBal(), r.actualBal());
+        Commarea c = populated("00000042");
+        Commarea expected = suppressed ? unchangedSuccess(caller("00000042")) : new Commarea(
+                c.eye(), c.custno(), c.scode(), c.accno(), type, c.intRate(),
+                c.opened(), c.overdraft(), c.lastStmtDt(), c.nextStmtDt(),
+                c.availBal(), c.actualBal(), "Y", POINTER);
+
+        assertOrdinary(selected, expected);
+    }
+
+    private static void ordinaryEyecatcher() {
+        AccountRow r = row("987654", "00000042");
+        Commarea c = populated("00000042");
+
+        assertOrdinary(new AccountRow(
+                "TEST", r.custno(), r.scode(), r.accno(), r.accType(), r.intRate(),
+                r.opened(), r.overdraft(), r.lastStmtDt(), r.nextStmtDt(),
+                r.availBal(), r.actualBal()), new Commarea(
+                "TEST", c.custno(), c.scode(), c.accno(), c.accType(), c.intRate(),
+                c.opened(), c.overdraft(), c.lastStmtDt(), c.nextStmtDt(),
+                c.availBal(), c.actualBal(), "Y", POINTER));
+    }
+
+    private static void ordinaryNumericLimits() {
+        ordinaryAmounts("9999999999.99", "-9999999999.99", "9999.99",
+                99999999, "99999999");
+    }
+
+    private static void ordinaryZeroAndNegativeCent() {
+        ordinaryAmounts("0.00", "-0.01", "0.00", 0, "00000000");
+    }
+
+    private static void ordinaryAmounts(
+            String available, String actual, String interest, int overdraft,
+            String expectedOverdraft) {
+        AccountRow r = row("987654", "00000042");
+        Commarea c = populated("00000042");
+
+        assertOrdinary(new AccountRow(
+                r.eye(), r.custno(), r.scode(), r.accno(), r.accType(), decimal(interest),
+                r.opened(), overdraft, r.lastStmtDt(), r.nextStmtDt(),
+                decimal(available), decimal(actual)), new Commarea(
+                c.eye(), c.custno(), c.scode(), c.accno(), c.accType(), decimal(interest),
+                c.opened(), expectedOverdraft, c.lastStmtDt(), c.nextStmtDt(),
+                decimal(available), decimal(actual), "Y", POINTER));
+    }
+
+    private static void ordinaryDateBoundaries() {
+        AccountRow r = row("987654", "00000042");
+        Commarea c = populated("00000042");
+
+        assertOrdinary(new AccountRow(
+                r.eye(), r.custno(), r.scode(), r.accno(), r.accType(), r.intRate(),
+                "2024-02-29", r.overdraft(), "2026-12-31", "2027-01-01",
+                r.availBal(), r.actualBal()), new Commarea(
+                c.eye(), c.custno(), c.scode(), c.accno(), c.accType(), c.intRate(),
+                "29022024", c.overdraft(), "31122026", "01012027",
+                c.availBal(), c.actualBal(), "Y", POINTER));
+    }
+
+    private static void assertOrdinary(AccountRow selected, Commarea expected) {
+        Commarea input = caller("00000042");
+        FakePorts ports = new FakePorts(List.of(selected));
+
+        Commarea actual = new Inqacc(ports).inquire(input);
+
+        equal(expected, actual, "all ordinary-account fields");
+        equal(caller("00000042"), input, "caller snapshot");
+        same(input.pcb1Pointer(), actual.pcb1Pointer(), "opaque pointer");
+        equal(ordinaryEvents("00000042"), ports.events, "one ordered cursor lifecycle");
+        equal(List.of(), ports.diagnostics, "no diagnostic LINK");
         assertShape(actual);
     }
 
