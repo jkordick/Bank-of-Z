@@ -14,11 +14,11 @@ coverage (`src/base/cics/cobol/INQACC.cbl:229`,
 
 | Test id | Status | commit |
 |---|---|---|
-| INQACC-T01 | PASS - configured sort code, account selector, complete output copy, pointer retained | pending |
-| INQACC-T03 | PASS - FETCH +100, successful CLOSE, only success changes to Y | pending |
-| INQACC-T13 | PASS - 00000000 remains an ordinary lookup | pending |
-| INQACC-T14 | PASS - 99999998 remains an ordinary lookup | pending |
-| INQACC-T19 | PASS - FETCH +100 then CLOSE -904; exact diagnostic LINK, HRAC NODUMP CANCEL, no normal result | pending |
+| INQACC-T01 | PASS - configured sort code, account selector, complete output copy, pointer retained | 3f18576 |
+| INQACC-T03 | PASS - FETCH +100, successful CLOSE, only success changes to Y | 3f18576 |
+| INQACC-T13 | PASS - 00000000 remains an ordinary lookup | 3f18576 |
+| INQACC-T14 | PASS - 99999998 remains an ordinary lookup | 3f18576 |
+| INQACC-T19 | PASS - FETCH +100 then CLOSE -904; exact diagnostic LINK, HRAC NODUMP CANCEL, no normal result | 3f18576 |
 
 ### Red / green evidence
 
