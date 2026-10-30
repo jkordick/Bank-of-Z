@@ -1,7 +1,7 @@
 # INQACC interface contract
 
 **Status: interface definition complete under the INQACC-Q07 domain answer;
-slice 1 implemented locally; full implementation and cutover remain gated**
+slices 1 and 2 implemented locally; full implementation and cutover remain gated**
 (`docs/modernization/01-rediscovery/open-questions.md:1039`,
 `docs/modernization/03a-architecture/target-architecture.md:225`).
 The checked-in mappings are authoritative, including placeholders. Accepted
@@ -357,7 +357,7 @@ substitution; relevant audit verdicts remain blocked
 `docs/modernization/02-substitution-audit/audit.md:24`,
 `docs/modernization/02-substitution-audit/audit.md:35`).
 
-## Local implementation boundary - slice 1
+## Local implementation boundary - slices 1 and 2
 
 The local workspace is `modern/inqacc/`, with standard
 `src/main/java` and `src/test/java` directories. Phase 3a selects Java/Spring
@@ -399,7 +399,7 @@ Java component names correspond to the existing INQACC field suffixes:
 
 The mapping follows the base copybook, not a new external schema
 (`src/base/cics/copy/INQACC.cpy:8`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:86`).
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:110`).
 Identifiers, text, whole-unit overdraft and DDMMYYYY dates retain fixed-width
 strings; interest and balances use `BigDecimal`, with no floating-point
 conversion or rounding. The opaque pointer retains object identity. The
@@ -407,21 +407,40 @@ supported domain is the specification's representable, non-NULL fixtures;
 this adds no validation policy for undefined inputs. Date overlays remain
 views of the existing eight-character values, not separate stored fields
 (`src/base/cics/copy/INQACC.cpy:15`,
-`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:45`).
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:71`).
 
-`Ports` separates cursor operations, supplied CICS context/clock, diagnostic
-LINK attempts and DISPLAY effects. Only test doubles exist. For T19 the core
-throws `Abend` carrying HRAC/NODUMP/CANCEL after the CLOSE diagnostic; this is
-an internal control-transfer representation, not a new return field or HTTP
-error (`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:65`).
+`Ports` separates query operations, supplied CICS context/clock, diagnostic
+LINK attempts and DISPLAY effects. Only test doubles exist. The core throws
+`Abend` carrying HRAC after a CLOSE failure or HNCS after any nonzero highest
+SELECT outcome, both NODUMP/CANCEL. This is an internal control-transfer
+representation, not a new return field or HTTP error
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:75`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:90`).
 There is no commit, rollback, retry, real data adapter, native COMMAREA codec
 or REST projection in this slice. Binary CCSID/sign/pointer encoding and live
 unit-of-work equivalence are therefore not verified.
 
-Highest-account mode and OPEN/FETCH technical failures explicitly throw
+OPEN/FETCH technical failures explicitly throw
 `UnsupportedOperationException` rather than returning success or silently
 delegating. These are development-only guards, **not legacy error semantics**
 or permission to route requests to this partial core
-(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:18`).
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:44`).
 The unchanged switch above remains disabled until full module, REST and
 operational acceptance; no legacy dependency is retired or replaced.
+
+Slice 2 adds the internal `Ports.selectHighest(sortcode)` seam. Its adapter
+contract is one SELECT at the supplied configured sort code, ordered by
+ACCOUNT_NUMBER descending with one row only, without cursor calls or extra
+customer/type/account-number predicates. It returns the existing `Fetch`
+SQLCODE/row carrier, also used for cursor outcomes; the name does not imply
+a cursor FETCH in highest mode. The test double implements that selection,
+but no real SQL adapter or deployed ordering/isolation behavior is verified
+(`src/base/cics/cobol/INQACC.cbl:843`,
+`src/base/cics/cobol/INQACC.cbl:869`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:133`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:309`).
+The public `inquire(Commarea)` entry, complete logical record shape, widths,
+exact scale-2 amounts, success flags and pointer identity are unchanged
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:110`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:242`).

@@ -15,11 +15,34 @@ public final class Inqacc {
     }
 
     public Commarea inquire(Commarea input) {
+        Fetch fetched;
         if ("99999999".equals(input.accno())) {
-            throw new UnsupportedOperationException("Highest-account mode is outside slice 1");
+            fetched = ports.selectHighest(SORTCODE);
+            if (fetched.sqlcode() != 0) {
+                failHighest(fetched.sqlcode());
+            }
+        } else {
+            fetched = readOrdinary(input.accno());
         }
 
-        int openSqlcode = ports.open(SORTCODE, input.accno());
+        if (fetched.sqlcode() == 100) {
+            return withSuccess(input);
+        }
+
+        AccountRow row = Objects.requireNonNull(fetched.row(), "Successful query must supply a row");
+        if ("        ".equals(row.accType()) || "\0".repeat(8).equals(row.accType())) {
+            return withSuccess(input);
+        }
+        return new Commarea(
+                row.eye(), row.custno(), row.scode(), row.accno(), row.accType(),
+                row.intRate(), displayDate(row.opened()),
+                String.format(Locale.ROOT, "%08d", row.overdraft()),
+                displayDate(row.lastStmtDt()), displayDate(row.nextStmtDt()),
+                row.availBal(), row.actualBal(), "Y", input.pcb1Pointer());
+    }
+
+    private Fetch readOrdinary(String accno) {
+        int openSqlcode = ports.open(SORTCODE, accno);
         if (openSqlcode != 0) {
             throw new UnsupportedOperationException("OPEN failure is outside slice 1: " + openSqlcode);
         }
@@ -35,20 +58,7 @@ public final class Inqacc {
             failClose(closeSqlcode);
         }
 
-        if (fetched.sqlcode() == 100) {
-            return withSuccess(input);
-        }
-
-        AccountRow row = Objects.requireNonNull(fetched.row(), "Successful FETCH must supply a row");
-        if ("        ".equals(row.accType()) || "\0".repeat(8).equals(row.accType())) {
-            return withSuccess(input);
-        }
-        return new Commarea(
-                row.eye(), row.custno(), row.scode(), row.accno(), row.accType(),
-                row.intRate(), displayDate(row.opened()),
-                String.format(Locale.ROOT, "%08d", row.overdraft()),
-                displayDate(row.lastStmtDt()), displayDate(row.nextStmtDt()),
-                row.availBal(), row.actualBal(), "Y", input.pcb1Pointer());
+        return fetched;
     }
 
     private static Commarea withSuccess(Commarea c) {
@@ -63,16 +73,10 @@ public final class Inqacc {
     }
 
     private void failClose(int sqlcode) {
-        Context context = ports.context();
         String sqlcodeDisplay = String.format(Locale.ROOT, "%+09d", sqlcode);
         String freeform = "RAD010 -Failure when attempting to CLOSE DB2 "
                 + "CURSOR (ACC-CUSOR). Check SQLCODESQLCODE=" + sqlcodeDisplay;
-        ports.link("ABNDPROC", new Diagnostic(
-                context.utime(), context.taskno(), context.applid(), context.tranid(),
-                context.time().format(DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.ROOT)),
-                context.time().format(DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT)),
-                "HRAC", context.program(), context.resp(), context.resp2(), sqlcode,
-                freeform + " ".repeat(600 - freeform.length())));
+        linkDiagnostic("HRAC", sqlcode, freeform);
         ports.display("Failure when attempting to close the DB2 CURSOR"
                 + " ACC-CURSOR. With SQL code=" + sqlcodeDisplay);
         if (sqlcode == 923) {
@@ -81,6 +85,26 @@ public final class Inqacc {
                     + "has been met (" + sqlcodeDisplay + ").");
         }
         throw new Abend("HRAC");
+    }
+
+    private void failHighest(int sqlcode) {
+        String sqlcodeDisplay = String.format(Locale.ROOT, "%+09d", sqlcode);
+        String ncsName = "HBNKACCT        ";
+        linkDiagnostic("HNCS", sqlcode, "GLAD010 -ACCOUNT NCS " + ncsName
+                + " CANNOT be accessed and DB2  SELECT failed. SQLCODE=" + sqlcodeDisplay);
+        ports.display("INQACC - ACCOUNT NCS " + ncsName
+                + " CANNOT BE ACCESSED AND DB2 SELECT FAILED. SQLCODE=" + sqlcodeDisplay);
+        throw new Abend("HNCS");
+    }
+
+    private void linkDiagnostic(String code, int sqlcode, String freeform) {
+        Context context = ports.context();
+        ports.link("ABNDPROC", new Diagnostic(
+                context.utime(), context.taskno(), context.applid(), context.tranid(),
+                context.time().format(DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.ROOT)),
+                context.time().format(DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT)),
+                code, context.program(), context.resp(), context.resp2(), sqlcode,
+                freeform + " ".repeat(600 - freeform.length())));
     }
 
     public record Commarea(
@@ -106,6 +130,8 @@ public final class Inqacc {
             int sqlcode, String freeform) {}
 
     public interface Ports {
+        Fetch selectHighest(String sortcode);
+
         int open(String sortcode, String accno);
 
         Fetch fetch();

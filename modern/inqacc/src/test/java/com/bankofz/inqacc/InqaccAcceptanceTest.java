@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,6 +15,7 @@ import com.bankofz.inqacc.Inqacc.Diagnostic;
 import com.bankofz.inqacc.Inqacc.Fetch;
 
 public final class InqaccAcceptanceTest {
+    private static int failures;
     private static final Object POINTER = new Object();
     private static final Context CONTEXT = new Context(
             123456789012345L, "0042", "BANKZ   ", "OMEN", "INQACC  ",
@@ -21,11 +23,26 @@ public final class InqaccAcceptanceTest {
 
     public static void main(String[] args) {
         run("INQACC-T01", InqaccAcceptanceTest::ordinaryInquiry);
+        run("INQACC-T02", InqaccAcceptanceTest::highestAccount);
         run("INQACC-T03", InqaccAcceptanceTest::missingAccount);
+        run("INQACC-T06", () -> highestSuppressedType("        "));
+        run("INQACC-T07", () -> highestSuppressedType("\0".repeat(8)));
+        run("INQACC-T11", InqaccAcceptanceTest::highestBalanceLimits);
         run("INQACC-T13", () -> ordinaryBoundary("00000000"));
         run("INQACC-T14", () -> ordinaryBoundary("99999998"));
+        run("INQACC-T15", InqaccAcceptanceTest::highestSentinelRow);
         run("INQACC-T19", InqaccAcceptanceTest::missingAccountCloseFailure);
-        System.out.println("5 INQACC acceptance tests passed");
+        run("INQACC-T28", () -> highestFailure(-911));
+        run("INQACC-T29", () -> highestFailure(-913));
+        run("INQACC-T30", () -> highestFailure(100));
+        run("INQACC-T31", () -> highestFailure(-904));
+        run("INQACC-T32", () -> highestFailure(923));
+        run("INQACC-T36", () -> highestFailure(1));
+        run("INQACC-T38", () -> highestFailure(-305));
+        if (failures != 0) {
+            throw new AssertionError(failures + " of 17 INQACC acceptance tests failed");
+        }
+        System.out.println("17 INQACC acceptance tests passed");
     }
 
     private static void ordinaryInquiry() {
@@ -97,6 +114,97 @@ public final class InqaccAcceptanceTest {
                 pad("RAD010 -Failure when attempting to CLOSE DB2 "
                         + "CURSOR (ACC-CUSOR). Check SQLCODESQLCODE=-00000904", 600))),
                 ports.diagnostics, "exact CLOSE diagnostic, including source spelling");
+    }
+
+    private static void highestAccount() {
+        AccountRow lower = new AccountRow(
+                "ACCT", "0000000123", "987654", "00000010", "CURRENT ",
+                decimal("3.25"), "2026-10-30", 250, "2026-09-30", "2026-10-31",
+                decimal("-12.34"), decimal("56.78"));
+        FakePorts ports = new FakePorts(List.of(
+                lower, row("111111", "99999998"), row("987654", "00000042")));
+
+        assertHighest(ports, populated("00000042"));
+    }
+
+    private static void highestSuppressedType(String type) {
+        AccountRow r = row("987654", "00000042");
+        AccountRow suppressed = new AccountRow(
+                r.eye(), r.custno(), r.scode(), r.accno(), type, r.intRate(),
+                r.opened(), r.overdraft(), r.lastStmtDt(), r.nextStmtDt(),
+                r.availBal(), r.actualBal());
+        FakePorts ports = new FakePorts(List.of(
+                row("987654", "00000010"), suppressed));
+
+        assertHighest(ports, unchangedSuccess(caller("99999999")));
+    }
+
+    private static void highestBalanceLimits() {
+        AccountRow r = row("987654", "00000042");
+        FakePorts ports = new FakePorts(List.of(new AccountRow(
+                r.eye(), r.custno(), r.scode(), r.accno(), r.accType(), r.intRate(),
+                r.opened(), r.overdraft(), r.lastStmtDt(), r.nextStmtDt(),
+                decimal("-9999999999.99"), decimal("9999999999.99"))));
+        Commarea c = populated("00000042");
+
+        assertHighest(ports, new Commarea(
+                c.eye(), c.custno(), c.scode(), c.accno(), c.accType(), c.intRate(),
+                c.opened(), c.overdraft(), c.lastStmtDt(), c.nextStmtDt(),
+                decimal("-9999999999.99"), decimal("9999999999.99"), "Y", POINTER));
+    }
+
+    private static void highestSentinelRow() {
+        FakePorts ports = new FakePorts(List.of(
+                row("987654", "00000042"), row("987654", "99999999")));
+
+        assertHighest(ports, populated("99999999"));
+    }
+
+    private static void assertHighest(FakePorts ports, Commarea expected) {
+        Commarea input = caller("99999999");
+
+        Commarea actual = new Inqacc(ports).inquire(input);
+
+        equal(expected, actual, "all highest-account fields");
+        equal(caller("99999999"), input, "caller snapshot");
+        same(input.pcb1Pointer(), actual.pcb1Pointer(), "opaque pointer");
+        equal(List.of("SELECT-HIGHEST:987654"), ports.events,
+                "one configured-sort SELECT; no cursor, retry or fallback");
+        equal(List.of(), ports.diagnostics, "no diagnostic LINK");
+        assertShape(actual);
+    }
+
+    private static void highestFailure(int sqlcode) {
+        Commarea input = caller("99999999");
+        FakePorts ports = new FakePorts(List.of(row("111111", "99999998")));
+        if (sqlcode != 100) {
+            ports.highestSqlcode = sqlcode;
+        }
+
+        try {
+            new Inqacc(ports).inquire(input);
+            throw new AssertionError("SELECT " + sqlcode + " must not return normally");
+        } catch (Inqacc.Abend failure) {
+            equal("HNCS", failure.code(), "SELECT abend code");
+            equal(true, failure.cancel(), "CANCEL");
+            equal(true, failure.nodump(), "NODUMP");
+        }
+
+        String code = String.format(java.util.Locale.ROOT, "%+09d", sqlcode);
+        equal(caller("99999999"), input, "no output copy or success assignment");
+        same(POINTER, input.pcb1Pointer(), "opaque pointer");
+        equal(List.of(
+                "SELECT-HIGHEST:987654", "CONTEXT", "LINK:ABNDPROC",
+                "DISPLAY:INQACC - ACCOUNT NCS HBNKACCT        "
+                        + " CANNOT BE ACCESSED AND DB2 SELECT FAILED. SQLCODE=" + code),
+                ports.events, "one SELECT, LINK before DISPLAY; no cursor, storm check or retry");
+        equal(List.of(new Diagnostic(
+                CONTEXT.utime(), CONTEXT.taskno(), CONTEXT.applid(), CONTEXT.tranid(),
+                "30/10/2026", "20:34:01", "HNCS", CONTEXT.program(), 17, 29, sqlcode,
+                pad("GLAD010 -ACCOUNT NCS HBNKACCT        "
+                        + " CANNOT be accessed and DB2  SELECT failed. SQLCODE=" + code, 600))),
+                ports.diagnostics, "exact SELECT diagnostic and supplied context/clock");
+        assertShape(input);
     }
 
     private static Commarea caller(String accno) {
@@ -175,8 +283,13 @@ public final class InqaccAcceptanceTest {
     }
 
     private static void run(String id, Runnable test) {
-        test.run();
-        System.out.println("PASS " + id);
+        try {
+            test.run();
+            System.out.println("PASS " + id);
+        } catch (AssertionError | RuntimeException failure) {
+            failures++;
+            System.err.println("FAIL " + id + ": " + failure);
+        }
     }
 
     private static final class FakePorts implements Inqacc.Ports {
@@ -186,9 +299,23 @@ public final class InqaccAcceptanceTest {
         private String selectedSortcode;
         private String selectedAccno;
         private int closeSqlcode;
+        private int highestSqlcode;
 
         private FakePorts(List<AccountRow> rows) {
             this.rows = rows;
+        }
+
+        @Override
+        public Fetch selectHighest(String sortcode) {
+            events.add("SELECT-HIGHEST:" + sortcode);
+            if (highestSqlcode != 0) {
+                return new Fetch(highestSqlcode, null);
+            }
+            return rows.stream()
+                    .filter(r -> r.scode().equals(sortcode))
+                    .max(Comparator.comparing(AccountRow::accno))
+                    .map(r -> new Fetch(0, r))
+                    .orElseGet(() -> new Fetch(100, null));
         }
 
         @Override

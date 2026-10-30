@@ -69,3 +69,80 @@ component retirement is claimed. The audit remains blocked
 (`docs/modernization/02-substitution-audit/audit.md:7`), and the strangler
 routes remain disabled (`docs/modernization/03b-rewrite/INQACC/interface.md:344`).
 Stop here for review; do not begin the next slice.
+
+## Slice 2 - INQACC-R02
+
+**Status: green locally; pending human review.** This section supersedes
+slice 1's remaining-coverage snapshot, not its historical execution evidence.
+All 12 tests mapped to R02 are now executable, including their required R04,
+R05 and R07 interactions; this does not claim full coverage of those rules
+(`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:209`).
+
+| Test id | Status | commit |
+|---|---|---|
+| INQACC-T02 | PASS - highest number at configured sort code, not newest date or global highest; complete output copy | pending |
+| INQACC-T06 | PASS - highest type spaces retains all incoming fields except success Y; no lower-row fallback | pending |
+| INQACC-T07 | PASS - highest type low-values retains sentinel, other fields and pointer; success Y | pending |
+| INQACC-T11 | PASS - exact opposite-sign balance limits copied through highest mode | pending |
+| INQACC-T15 | PASS - actual row 99999999 still uses highest SELECT, not cursor lookup | pending |
+| INQACC-T28 | PASS - SELECT -911 records HNCS and abends; no retry or rollback | pending |
+| INQACC-T29 | PASS - SELECT -913 records HNCS and abends; no retry or rollback | pending |
+| INQACC-T30 | PASS - no configured-sort row gives +100, diagnostic HNCS and abend, not success | pending |
+| INQACC-T31 | PASS - SELECT -904 records HNCS and abends | pending |
+| INQACC-T32 | PASS - SELECT +923 records HNCS and abends without storm diagnostic | pending |
+| INQACC-T36 | PASS - SELECT +1 records HNCS and abends | pending |
+| INQACC-T38 | PASS - SELECT -305 records HNCS and abends without NULL defaulting | pending |
+
+### Red / green evidence
+
+On 2026-10-30, after adding the 12 runnable tests and before modifying
+production code, `bash modern/inqacc/run-tests.sh` compiled successfully
+and exited 1: every new test failed with
+`UnsupportedOperationException: Highest-account mode is outside slice 1`;
+all five slice-1 tests passed. The runner reports every failing test before
+exiting nonzero
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:24`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:285`).
+
+After adding highest-mode dispatch, shared output mapping and the exact SELECT
+diagnostic/abend path, the same full-suite command exited 0 with **17/17
+acceptance tests passing**, compiled with Java 21 `-Xlint:all -Werror`.
+No downloaded dependencies or mainframe commands were used
+(`modern/inqacc/run-tests.sh:13`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:17`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:90`).
+
+Success fixtures compare every COMMAREA field, widths, date order, scale-2
+decimals and pointer identity. Failure fixtures assert one configured-sort
+SELECT, supplied context/clock, exact 600-character diagnostic including
+the padded NCS name, SQLCODE sign, LINK-before-DISPLAY and HNCS NODUMP CANCEL;
+there is no cursor, retry, storm display, normal result or explicit rollback
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:119`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:163`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:177`,
+`src/base/cics/cobol/INQACC.cbl:145`,
+`src/base/cics/cobol/INQACC.cbl:874`,
+`src/base/cics/cobol/INQACC.cbl:914`).
+
+### Remaining coverage and boundary
+
+**17 of 48 specified tests pass locally; 31 remain deferred, not waived.**
+Both sentinel dispatch arms at source line 218 and all specified SELECT
+SQLCODE classes at line 874 are covered. Highest-mode spaces/low-values
+cover the corresponding output-gate arms at line 229. Other decision
+deferrals and W01 remain as recorded for slice 1; the rollback-response IF
+at line 687 remains **unverified by tooling**, outside this slice
+(`docs/modernization/00-source-of-truth/programs/INQACC.md:79`,
+`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:195`).
+
+The public logical COMMAREA is unchanged; the new SELECT seam is an internal
+adapter contract implemented only by a test double. No live DB2 ordering,
+binary encoding, REST projection or caller-unit-of-work parity is claimed
+(`docs/modernization/03b-rewrite/INQACC/interface.md:360`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:242`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:309`).
+Legacy sources and routing are unchanged; the substitution audit remains
+blocked and the strangler switch disabled
+(`docs/modernization/02-substitution-audit/audit.md:7`,
+`docs/modernization/03b-rewrite/INQACC/interface.md:344`).
+Stop here for review; do not begin the next slice.
