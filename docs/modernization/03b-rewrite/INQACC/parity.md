@@ -224,22 +224,22 @@ R07 diagnostic interactions
 
 | Test id | Status | commit |
 |---|---|---|
-| INQACC-T16 | PASS - OPEN -904; exact HRAC diagnostic; no FETCH/CLOSE or storm display | pending |
-| INQACC-T17 | PASS - FETCH -904; HRAC; no CLOSE or storm display | pending |
-| INQACC-T18 | PASS - fetched row then CLOSE -904; HRAC, no populated result | pending |
-| INQACC-T19 | PASS - existing FETCH +100 then CLOSE -904 regression retained | pending |
-| INQACC-T20 | PASS - OPEN +923; storm display after LINK/error DISPLAY; HRAC | pending |
-| INQACC-T21 | PASS - OPEN -923; no storm display; HRAC | pending |
-| INQACC-T22 | PASS - FETCH +923; storm display before diagnostic LINK; HRAC | pending |
-| INQACC-T23 | PASS - FETCH -923; no storm display; HRAC | pending |
-| INQACC-T24 | PASS - CLOSE +923; storm display after LINK/error DISPLAY; HRAC | pending |
-| INQACC-T25 | PASS - CLOSE -923; no storm display or normal result; HRAC | pending |
-| INQACC-T26 | PASS - FETCH -911; exactly one FETCH, no CLOSE/retry; HRAC | pending |
-| INQACC-T27 | PASS - FETCH -913; exactly one FETCH, no CLOSE/retry; HRAC | pending |
-| INQACC-T33 | PASS - OPEN +100 is an error, not missing-account success; HRAC | pending |
-| INQACC-T34 | PASS - CLOSE +100 is an error, not missing-account success; HRAC | pending |
-| INQACC-T35 | PASS - FETCH +1 is an error; no CLOSE; HRAC | pending |
-| INQACC-T37 | PASS - FETCH -305; no NULL default or CLOSE; HRAC | pending |
+| INQACC-T16 | PASS - OPEN -904; exact HRAC diagnostic; no FETCH/CLOSE or storm display | 557bd85 |
+| INQACC-T17 | PASS - FETCH -904; HRAC; no CLOSE or storm display | 557bd85 |
+| INQACC-T18 | PASS - fetched row then CLOSE -904; HRAC, no populated result | 557bd85 |
+| INQACC-T19 | PASS - existing FETCH +100 then CLOSE -904 regression retained | 557bd85 |
+| INQACC-T20 | PASS - OPEN +923; storm display after LINK/error DISPLAY; HRAC | 557bd85 |
+| INQACC-T21 | PASS - OPEN -923; no storm display; HRAC | 557bd85 |
+| INQACC-T22 | PASS - FETCH +923; storm display before diagnostic LINK; HRAC | 557bd85 |
+| INQACC-T23 | PASS - FETCH -923; no storm display; HRAC | 557bd85 |
+| INQACC-T24 | PASS - CLOSE +923; storm display after LINK/error DISPLAY; HRAC | 557bd85 |
+| INQACC-T25 | PASS - CLOSE -923; no storm display or normal result; HRAC | 557bd85 |
+| INQACC-T26 | PASS - FETCH -911; exactly one FETCH, no CLOSE/retry; HRAC | 557bd85 |
+| INQACC-T27 | PASS - FETCH -913; exactly one FETCH, no CLOSE/retry; HRAC | 557bd85 |
+| INQACC-T33 | PASS - OPEN +100 is an error, not missing-account success; HRAC | 557bd85 |
+| INQACC-T34 | PASS - CLOSE +100 is an error, not missing-account success; HRAC | 557bd85 |
+| INQACC-T35 | PASS - FETCH +1 is an error; no CLOSE; HRAC | 557bd85 |
+| INQACC-T37 | PASS - FETCH -305; no NULL default or CLOSE; HRAC | 557bd85 |
 
 ### Red / green evidence
 
