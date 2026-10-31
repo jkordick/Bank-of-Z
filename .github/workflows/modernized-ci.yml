@@ -1,0 +1,217 @@
+name: Modernized CI
+
+on:
+  push:
+    paths:
+      - 'modern/**'
+      - 'docs/modernization/03b-rewrite/**'
+      - 'infra/**'
+      - '.github/workflows/modernized-ci.yml'
+  pull_request:
+    paths:
+      - 'modern/**'
+      - 'docs/modernization/03b-rewrite/**'
+      - 'infra/**'
+      - '.github/workflows/modernized-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modernized-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check rewritten-module inventory
+        run: |
+          export CI_BUILD="$RUNNER_TEMP/modernized-build"
+          export CI_REPORTS="$RUNNER_TEMP/modernized-reports"
+          export CI_IAC="$RUNNER_TEMP/modernized-iac"
+          printf 'CI_BUILD=%s\nCI_REPORTS=%s\nCI_IAC=%s\n' \
+            "$CI_BUILD" "$CI_REPORTS" "$CI_IAC" >> "$GITHUB_ENV"
+          mkdir -p "$CI_BUILD" "$CI_REPORTS"
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          contracts = Path("docs/modernization/03b-rewrite")
+          modules = sorted(p for p in contracts.iterdir() if p.is_dir())
+          if not modules:
+              raise SystemExit("No rewritten modules found")
+          names = []
+          for module in modules:
+              if not re.fullmatch(r"[A-Z][A-Z0-9]*", module.name):
+                  raise SystemExit(f"Unsupported module name: {module.name}")
+              name = module.name.lower()
+              for required in (
+                  module / "interface.md",
+                  module / "acceptance-tests.md",
+                  Path("modern") / name / "run-tests.sh",
+                  Path("modern") / name / "src/main/java",
+                  Path("modern") / name / "src/test/java",
+              ):
+                  if not required.exists():
+                      raise SystemExit(f"Missing module input: {required}")
+              names.append(name)
+          implementations = sorted(p.name for p in Path("modern").iterdir() if p.is_dir())
+          if implementations != sorted(names):
+              raise SystemExit("Rewrite contracts and modern/ implementations do not match")
+          Path(os.environ["CI_BUILD"], "modules.txt").write_text("\n".join(names) + "\n")
+          PY
+
+      - name: Build production and test classes
+        run: |
+          while IFS= read -r module; do
+            mkdir -p "$CI_BUILD/$module/main" "$CI_BUILD/$module/test"
+            mapfile -t main_sources < <(find "modern/$module/src/main/java" -type f -name '*.java' | sort)
+            mapfile -t test_sources < <(find "modern/$module/src/test/java" -type f -name '*.java' | sort)
+            test "${#main_sources[@]}" -gt 0
+            test "${#test_sources[@]}" -gt 0
+            javac --release 21 -Xlint:all -Werror -d "$CI_BUILD/$module/main" "${main_sources[@]}"
+            javac --release 21 -Xlint:all -Werror -cp "$CI_BUILD/$module/main" \
+              -d "$CI_BUILD/$module/test" "${test_sources[@]}"
+          done < "$CI_BUILD/modules.txt"
+
+      - name: Unit tests (core fixture drivers)
+        run: |
+          while IFS= read -r module; do
+            mapfile -t drivers < <(find "modern/$module/src/test/java" -type f -name '*Test.java' | sort)
+            test "${#drivers[@]}" -gt 0
+            for driver in "${drivers[@]}"; do
+              class="${driver#modern/$module/src/test/java/}"
+              class="${class%.java}"
+              class="${class//\//.}"
+              java -cp "$CI_BUILD/$module/main:$CI_BUILD/$module/test" "$class" 2>&1 \
+                | tee "$CI_REPORTS/$module-unit-${class##*.}.log"
+            done
+          done < "$CI_BUILD/modules.txt"
+
+      - name: Phase-3b acceptance tests (every module, gating)
+        run: |
+          while IFS= read -r module; do
+            bash "modern/$module/run-tests.sh" 2>&1 | tee "$CI_REPORTS/$module-acceptance.log"
+          done < "$CI_BUILD/modules.txt"
+          python - <<'PY'
+          import os
+          import re
+          from collections import Counter
+          from pathlib import Path
+
+          for name in Path(os.environ["CI_BUILD"], "modules.txt").read_text().splitlines():
+              module = name.upper()
+              matrix = Path("docs/modernization/03b-rewrite", module, "acceptance-tests.md").read_text()
+              expected = re.findall(rf"^\| ({module}-T\d+) \|", matrix, re.MULTILINE)
+              log = Path(os.environ["CI_REPORTS"], f"{name}-acceptance.log").read_text()
+              passed = re.findall(rf"^PASS ({module}-T\d+)$", log, re.MULTILINE)
+              if not expected or any(n != 1 for n in Counter(expected).values()):
+                  raise SystemExit(f"{module}: missing or duplicate acceptance matrix IDs")
+              if Counter(passed) != Counter(expected):
+                  raise SystemExit(f"{module}: PASS IDs do not exactly match the acceptance matrix")
+              print(f"{module}: all {len(expected)} specified acceptance cases passed exactly once")
+          PY
+
+      - name: Security scan
+        run: |
+          python -m venv "$RUNNER_TEMP/semgrep"
+          "$RUNNER_TEMP/semgrep/bin/pip" install --disable-pip-version-check 'semgrep==1.90.0'
+          "$RUNNER_TEMP/semgrep/bin/semgrep" scan \
+            --config p/java --config p/secrets --metrics=off --disable-version-check \
+            --strict --error --json --output "$CI_REPORTS/semgrep.json" \
+            modern/ infra/ .github/workflows/modernized-ci.yml
+
+      - name: IaC lint and security scan
+        env:
+          BANKZ_LOCATION: eastus
+          BANKZ_HUB_SUBSCRIPTION_ID: '00000000-0000-0000-0000-000000000001'
+          BANKZ_HUB_RESOURCE_GROUP: ci-example-hub
+          BANKZ_HUB_VNET_NAME: ci-example-hub
+          BANKZ_DNS_SUBSCRIPTION_ID: '00000000-0000-0000-0000-000000000001'
+          BANKZ_DNS_RESOURCE_GROUP: ci-example-dns
+          BANKZ_MONITOR_SUBSCRIPTION_ID: '00000000-0000-0000-0000-000000000001'
+          BANKZ_MONITOR_RESOURCE_GROUP: ci-example-monitor
+          BANKZ_MONITOR_PRIVATE_LINK_SCOPE_NAME: ci-example-monitor
+          BANKZ_SPOKE_CIDR: '10.200.0.0/16'
+          BANKZ_APPS_SUBNET_CIDR: '10.200.0.0/23'
+          BANKZ_ENDPOINTS_SUBNET_CIDR: '10.200.2.0/24'
+          BANKZ_DNS_SERVERS_JSON: '["10.201.0.4"]'
+          BANKZ_MAINFRAME_CIDRS_JSON: '["10.202.0.0/16"]'
+          BANKZ_ZOS_CONNECT_CIDRS_JSON: '["10.202.0.10/32"]'
+        run: |
+          mkdir -p "$CI_IAC/templates" "$CI_IAC/parameters"
+          curl --fail --silent --show-error --location \
+            https://github.com/Azure/bicep/releases/download/v0.31.92/bicep-linux-x64 \
+            --output "$RUNNER_TEMP/bicep"
+          chmod +x "$RUNNER_TEMP/bicep"
+          mapfile -t templates < <(find infra -type f -name '*.bicep' | sort)
+          mapfile -t parameters < <(find infra -type f -name '*.bicepparam' | sort)
+          test "${#templates[@]}" -gt 0
+          test "${#parameters[@]}" -gt 0
+          for template in "${templates[@]}"; do
+            output="$CI_IAC/templates/${template#infra/}.json"
+            mkdir -p "$(dirname "$output")"
+            "$RUNNER_TEMP/bicep" build "$template" --outfile "$output"
+          done
+          for parameter in "${parameters[@]}"; do
+            output="$CI_IAC/parameters/${parameter#infra/}.json"
+            mkdir -p "$(dirname "$output")"
+            "$RUNNER_TEMP/bicep" build-params "$parameter" --outfile "$output"
+          done
+          python -m venv "$RUNNER_TEMP/checkov"
+          "$RUNNER_TEMP/checkov/bin/pip" install --disable-pip-version-check 'checkov==3.2.257'
+          "$RUNNER_TEMP/checkov/bin/checkov" --directory "$CI_IAC/templates" \
+            --framework arm --output json > "$CI_REPORTS/checkov.json"
+
+      - name: Package verified core libraries
+        run: |
+          mkdir -p "$CI_BUILD/package/lib" "$CI_BUILD/package/evidence"
+          while IFS= read -r module; do
+            jar --create --file "$CI_BUILD/package/lib/$module.jar" -C "$CI_BUILD/$module/main" .
+          done < "$CI_BUILD/modules.txt"
+          cp -R modern docs/modernization/03b-rewrite infra "$CI_BUILD/package/evidence/"
+          cp -R "$CI_REPORTS" "$CI_BUILD/package/evidence/reports"
+          printf '%s\n' "$GITHUB_SHA" > "$CI_BUILD/package/commit.txt"
+          (
+            cd "$CI_BUILD/package"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+
+      - name: Retain verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: modernized-core-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ env.CI_BUILD }}/package/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Retain diagnostics even on failure
+        if: ${{ always() && env.CI_REPORTS != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: modernized-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_REPORTS }}/
+          if-no-files-found: warn
+          retention-days: 7
