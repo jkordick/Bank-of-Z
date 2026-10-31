@@ -2,9 +2,9 @@
 
 ## Scope and evidence
 
-The complete module specification is below. Slices 1 through 4 implement T01-T38
-and T47-T48 in
-`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:24`;
+The complete module specification is below. Slices 1 through 5 implement all
+48 cases, T01-T48, in
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:27`;
 execution evidence and deferred coverage are recorded in
 `docs/modernization/03b-rewrite/INQACC/parity.md:1`.
 The module is INQACC; the first-wave REST boundary is limited to the two inquiry
@@ -188,8 +188,10 @@ All decision citations are original source, including the source-only IF.
 ## Decision and rule coverage
 
 **48 specified tests; all 8 rules mapped; 11/11 digest decision points and
-12/12 source-observed decision points covered at least once.** These are
-specification counts, not executed or passing-test claims.
+12/12 source-observed decision points covered at least once.** All 48 cases
+pass locally after slice 5; execution evidence is in
+`docs/modernization/03b-rewrite/INQACC/parity.md:296`. W01 remains the
+source-supported false-arm waiver, not a deferred acceptance case.
 
 | Decision point | Arms / test evidence |
 |---|---|

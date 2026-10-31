@@ -9,10 +9,13 @@ import java.util.List;
 import java.util.Objects;
 
 import com.bankofz.inqacc.Inqacc.AccountRow;
+import com.bankofz.inqacc.Inqacc.CapturedAbend;
 import com.bankofz.inqacc.Inqacc.Commarea;
 import com.bankofz.inqacc.Inqacc.Context;
 import com.bankofz.inqacc.Inqacc.Diagnostic;
 import com.bankofz.inqacc.Inqacc.Fetch;
+import com.bankofz.inqacc.Inqacc.Response;
+import com.bankofz.inqacc.Inqacc.SqlDiagnostics;
 
 public final class InqaccAcceptanceTest {
     private static int failures;
@@ -60,12 +63,20 @@ public final class InqaccAcceptanceTest {
         run("INQACC-T36", () -> highestFailure(1));
         run("INQACC-T37", () -> ordinaryFailure("FETCH", -305));
         run("INQACC-T38", () -> highestFailure(-305));
+        run("INQACC-T39", () -> stormHandler("AFCR", false));
+        run("INQACC-T40", () -> stormHandler("AFCS", false));
+        run("INQACC-T41", () -> stormHandler("AFCT", false));
+        run("INQACC-T42", () -> stormHandler("AFCR", true));
+        run("INQACC-T43", () -> stormHandler("AFCS", true));
+        run("INQACC-T44", () -> stormHandler("AFCT", true));
+        run("INQACC-T45", InqaccAcceptanceTest::deadlockHandler);
+        run("INQACC-T46", InqaccAcceptanceTest::otherHandler);
         run("INQACC-T47", () -> ordinaryType(" X      ", false));
         run("INQACC-T48", InqaccAcceptanceTest::ordinaryDateBoundaries);
         if (failures != 0) {
-            throw new AssertionError(failures + " of 40 INQACC acceptance tests failed");
+            throw new AssertionError(failures + " of 48 INQACC acceptance tests failed");
         }
-        System.out.println("40 INQACC acceptance tests passed");
+        System.out.println("48 INQACC acceptance tests passed");
     }
 
     private static void ordinaryInquiry() {
@@ -374,6 +385,133 @@ public final class InqaccAcceptanceTest {
         assertShape(input);
     }
 
+    private static void stormHandler(String code, boolean rollbackFails) {
+        Commarea input = unchangedSuccess(caller("00000042"));
+        FakePorts ports = new FakePorts(List.of(row("987654", "00000042")));
+        ports.capturedAbend = new CapturedAbend(code, null);
+        ports.captureSite = "FETCH";
+        ports.rollbackResponse = new Response(rollbackFails ? 16 : 0, 23);
+        ports.rollbackContext = new Context(
+                CONTEXT.utime(), CONTEXT.taskno(), CONTEXT.applid(), CONTEXT.tranid(),
+                CONTEXT.program(), 51, 63, CONTEXT.time());
+        List<String> expectedEvents = new ArrayList<>(List.of(
+                "OPEN:987654/00000042", "FETCH",
+                "DISPLAY:INQACC: Check-For-Storm-Drain-VSAM: Storm "
+                        + "Drain condition (Abend " + code + ") has been met.",
+                "ROLLBACK:CALLER-UNIT-OF-WORK"));
+
+        if (rollbackFails) {
+            expectAbend("HROL", () -> new Inqacc(ports).inquire(input));
+            expectedEvents.addAll(List.of(
+                    "CONTEXT", "LINK:ABNDPROC",
+                    "DISPLAY:INQACC: Unable to perform Syncpoint "
+                            + "Rollback. Possible Integrity issue "
+                            + " following VSAM RLS abend. "
+                            + " RESP CODE=+00000016 RESP2 CODE=+00000023"));
+            equal(List.of(handlerDiagnostic("HROL", ports.rollbackContext,
+                    "AH010 -Unable to perform SYNCPOINT ROLLBACK."
+                            + " Possible integrity issue following VSAM RLS "
+                            + " abend. EIBRESP=+00000051 RESP2=+00000063")),
+                    ports.diagnostics, "HROL uses captured EIB codes, recorded SQLCODE zero");
+            equal(List.of("pending caller work"), ports.callerWork,
+                    "failed rollback must not report caller work as rolled back");
+        } else {
+            Commarea actual = new Inqacc(ports).inquire(input);
+            equal(caller("00000042"), actual, "only success changes from Y to N");
+            same(input.pcb1Pointer(), actual.pcb1Pointer(), "opaque pointer");
+            assertShape(actual);
+            equal(List.of(), ports.diagnostics, "normal rollback needs no diagnostic LINK");
+            equal(List.of(), ports.callerWork, "rollback acts on participating caller work");
+        }
+        equal(expectedEvents, ports.events, "one rollback; no CLOSE, retry or handler reentry");
+        equal(unchangedSuccess(caller("00000042")), input,
+                "no output copy or premature success assignment");
+        same(POINTER, input.pcb1Pointer(), "opaque pointer");
+        assertShape(input);
+    }
+
+    private static void deadlockHandler() {
+        SqlDiagnostics sql = new SqlDiagnostics(
+                -911, "00000042", "40001", "LOCK RESOURCE   unused", 13,
+                List.of("+000000011", "-000000022", "+000000033",
+                        "-000000044", "+000000055", "-000000066"));
+        FakePorts ports = new FakePorts(List.of(row("987654", "00000042")));
+        ports.capturedAbend = new CapturedAbend("AD2Z", sql);
+        ports.captureSite = "FETCH";
+        Commarea input = caller("00000042");
+
+        expectAbend("AD2Z", () -> new Inqacc(ports).inquire(input));
+
+        equal(List.of(
+                "OPEN:987654/00000042", "FETCH",
+                "DISPLAY:DB2 DEADLOCK DETECTED IN INQACC, SQLCODE=-00000911",
+                "DISPLAY:DB2 DEADLOCK FOR ACCOUNT 00000042",
+                "DISPLAY:SQLSTATE=40001,SQLERRMC=LOCK RESOURCE"
+                        + ",SQLERRD(1)=+000000011,SQLERRD(2)=-000000022"
+                        + ",SQLERRD(3)=+000000033,SQLERRD(4)=-000000044"
+                        + ",SQLERRD(5)=+000000055,SQLERRD(6)=-000000066",
+                "CONTEXT", "LINK:ABNDPROC"), ports.events,
+                "AD2Z displays full SQL diagnostics before LINK; no rollback or retry");
+        equal(List.of(handlerDiagnostic("AD2Z", CONTEXT,
+                "AH010 -WVS-STORM-DRAIN=N EIBRESP=+00000017 RESP2=+00000029")),
+                ports.diagnostics, "displayed -911 is recorded as SQLCODE zero");
+        equal(caller("00000042"), input, "no output or success assignment");
+        equal(List.of("pending caller work"), ports.callerWork, "no explicit caller rollback");
+        assertShape(input);
+    }
+
+    private static void otherHandler() {
+        for (String site : List.of("OPEN", "FETCH", "CLOSE", "SELECT")) {
+            String accno = "SELECT".equals(site) ? "99999999" : "00000042";
+            Commarea input = caller(accno);
+            FakePorts ports = new FakePorts(List.of(row("987654", "00000042")));
+            ports.capturedAbend = new CapturedAbend("ASRA", null);
+            ports.captureSite = site;
+
+            expectAbend("ASRA", () -> new Inqacc(ports).inquire(input));
+
+            List<String> expectedEvents = new ArrayList<>();
+            if ("SELECT".equals(site)) {
+                expectedEvents.add("SELECT-HIGHEST:987654");
+            } else {
+                expectedEvents.add("OPEN:987654/00000042");
+                if (!"OPEN".equals(site)) {
+                    expectedEvents.add("FETCH");
+                }
+                if ("CLOSE".equals(site)) {
+                    expectedEvents.add("CLOSE");
+                }
+            }
+            expectedEvents.addAll(List.of("CONTEXT", "LINK:ABNDPROC"));
+            equal(expectedEvents, ports.events, "captured " + site + " abend reaches handler once");
+            equal(List.of(handlerDiagnostic("ASRA", CONTEXT,
+                    "AH010 -WVS-STORM-DRAIN=N EIBRESP=+00000017 RESP2=+00000029")),
+                    ports.diagnostics, "exact unmatched-code diagnostic; no SQL/storm display");
+            equal(caller(accno), input, "no output copy or success assignment");
+            equal(List.of("pending caller work"), ports.callerWork, "no explicit caller rollback");
+            same(POINTER, input.pcb1Pointer(), "opaque pointer");
+            assertShape(input);
+        }
+    }
+
+    private static Diagnostic handlerDiagnostic(String code, Context context, String freeform) {
+        return new Diagnostic(
+                context.utime(), context.taskno(), context.applid(), context.tranid(),
+                "30/10/2026", "20:34:01", code, context.program(),
+                context.resp(), context.resp2(), 0, pad(freeform, 600));
+    }
+
+    private static void expectAbend(String code, Runnable invocation) {
+        try {
+            invocation.run();
+            throw new AssertionError(code + " must not return normally");
+        } catch (Inqacc.Abend failure) {
+            equal(code, failure.code(), "abend code");
+            equal(true, failure.cancel(), "CANCEL");
+            equal(true, failure.nodump(), "NODUMP");
+        }
+    }
+
     private static Commarea caller(String accno) {
         return new Commarea(
                 "OLD!", "0000000007", "111111", accno, "SAVING  ",
@@ -463,6 +601,12 @@ public final class InqaccAcceptanceTest {
         private final List<AccountRow> rows;
         private final List<String> events = new ArrayList<>();
         private final List<Diagnostic> diagnostics = new ArrayList<>();
+        private final List<String> callerWork = new ArrayList<>(List.of("pending caller work"));
+        private CapturedAbend capturedAbend;
+        private String captureSite;
+        private Response rollbackResponse;
+        private Context rollbackContext;
+        private Context currentContext = CONTEXT;
         private String selectedSortcode;
         private String selectedAccno;
         private int openSqlcode;
@@ -477,6 +621,7 @@ public final class InqaccAcceptanceTest {
         @Override
         public Fetch selectHighest(String sortcode) {
             events.add("SELECT-HIGHEST:" + sortcode);
+            capture("SELECT");
             if (highestSqlcode != 0) {
                 return new Fetch(highestSqlcode, null);
             }
@@ -490,6 +635,7 @@ public final class InqaccAcceptanceTest {
         @Override
         public int open(String sortcode, String accno) {
             events.add("OPEN:" + sortcode + "/" + accno);
+            capture("OPEN");
             selectedSortcode = sortcode;
             selectedAccno = accno;
             return openSqlcode;
@@ -498,6 +644,7 @@ public final class InqaccAcceptanceTest {
         @Override
         public Fetch fetch() {
             events.add("FETCH");
+            capture("FETCH");
             if (fetchSqlcode != 0) {
                 return new Fetch(fetchSqlcode, null);
             }
@@ -511,13 +658,30 @@ public final class InqaccAcceptanceTest {
         @Override
         public int close() {
             events.add("CLOSE");
+            capture("CLOSE");
             return closeSqlcode;
+        }
+
+        private void capture(String site) {
+            if (site.equals(captureSite)) {
+                throw capturedAbend;
+            }
+        }
+
+        @Override
+        public Response rollbackCallerUnitOfWork() {
+            events.add("ROLLBACK:CALLER-UNIT-OF-WORK");
+            currentContext = Objects.requireNonNull(rollbackContext);
+            if (rollbackResponse.resp() == 0) {
+                callerWork.clear();
+            }
+            return rollbackResponse;
         }
 
         @Override
         public Context context() {
             events.add("CONTEXT");
-            return CONTEXT;
+            return currentContext;
         }
 
         @Override

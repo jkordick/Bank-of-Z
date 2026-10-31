@@ -292,3 +292,86 @@ The audit remains blocked, and strangler routes disabled
 `docs/modernization/03b-rewrite/INQACC/interface.md:344`).
 No mainframe comparison, live adapter or unit-of-work parity is claimed.
 Stop here for review; do not begin the next slice.
+
+## Slice 5 - INQACC-R08 and remaining acceptance cases
+
+**Status: green locally; pending human review.** This section supersedes
+slice 4's remaining-coverage snapshot. T39-T46 were the only deferred cases;
+all **48/48 specified acceptance tests now pass locally**, with no deferred
+test IDs. This is source-derived fixture parity, not running-mainframe parity
+or cutover approval
+(`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:177`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:27`).
+
+| Test id | Status | commit |
+|---|---|---|
+| INQACC-T39 | PASS - AFCR, one caller-unit-of-work rollback, unchanged fields with success N, no LINK/re-abend | pending |
+| INQACC-T40 | PASS - AFCS, NORMAL rollback and success N, pointer retained | pending |
+| INQACC-T41 | PASS - AFCT, NORMAL rollback and success N, no clearing/retry | pending |
+| INQACC-T42 | PASS - AFCR failed rollback, exact HROL diagnostic/DISPLAY, no N assignment | pending |
+| INQACC-T43 | PASS - AFCS failed rollback, HROL NODUMP/CANCEL, one rollback only | pending |
+| INQACC-T44 | PASS - AFCT failed rollback, HROL not AFCT, no normal result | pending |
+| INQACC-T45 | PASS - AD2Z displays captured SQL diagnostics, records SQLCODE zero and re-abends, no rollback/retry | pending |
+| INQACC-T46 | PASS - ASRA at OPEN/FETCH/CLOSE/SELECT, exact handler diagnostic and re-abend, no SQL/storm display or rollback | pending |
+
+### Red / green evidence
+
+On 2026-10-31, the eight test registrations, dependency doubles and typed
+handler/rollback carriers were added before handler behavior. An initial
+compile exposed a serialization lint warning in the exception payload; marking
+that invocation-local payload transient restored strict compilation.
+`bash modern/inqacc/run-tests.sh` then exited 1: **all eight new cases failed
+with the uncaught CapturedAbend**, while all 40 previously green cases passed.
+No handler behavior was present at that red run
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:66`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:245`).
+
+After adding the installed-handler catch boundary, source-derived R08 branches
+and shared diagnostic construction, the same full module command exited 0
+with **48/48 passing**, compiled with Java 21
+`--release 21 -Xlint:all -Werror`. No dependencies were installed
+(`modern/inqacc/run-tests.sh:13`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:18`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:83`).
+
+The fixtures assert complete logical record shape/widths, exact scale-2
+amounts, pointer identity, ordered DISPLAY/rollback/context/LINK effects,
+one caller-unit-of-work rollback and its NORMAL/non-NORMAL outcomes.
+Distinguishable EIB and rollback response fields verify HROL freeform versus
+DISPLAY sources; AD2Z verifies SQLERRML slicing, all six adapter-supplied
+SQLERRD DISPLAY strings and recorded-versus-displayed SQLCODE. The previous
+HRAC/HNCS tests still prove explicit CANCEL abends do not invoke R08
+(`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:388`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:433`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:463`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:547`,
+`src/base/cics/cobol/INQACC.cbl:724`,
+`src/base/cics/cobol/INQACC.cbl:744`,
+`src/base/cics/cobol/INQACC.cbl:799`).
+
+### Final decision coverage and boundary
+
+All R01-R08 mapped cases are executable. **11/11 digest decision points and
+12/12 source-observed decisions have executed evidence or the existing W01
+arm waiver**. Both outcomes of the source-only rollback-response IF are tested;
+that decision remains **unverified by tooling**. No mutable storm flag or
+invented path was added to reach the waived false arm at line 763
+(`docs/modernization/00-source-of-truth/programs/INQACC.md:79`,
+`src/base/cics/cobol/INQACC.cbl:687`,
+`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:195`,
+`docs/modernization/03b-rewrite/INQACC/acceptance-tests.md:215`).
+
+The public `inquire(Commarea)` contract remains unchanged; only internal
+captured-abend/SQL-diagnostic and rollback seams were added. There is no
+fail-code field, retry, new commit, real transaction/data adapter, REST
+implementation or binary codec. Caller-work effects are checked in a double,
+not against a live unit of work
+(`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:192`,
+`modern/inqacc/src/main/java/com/bankofz/inqacc/Inqacc.java:236`,
+`modern/inqacc/src/test/java/com/bankofz/inqacc/InqaccAcceptanceTest.java:672`).
+Legacy sources, dependencies and routing remain untouched. The audit remains
+blocked and strangler routes disabled; no component retirement or cutover
+is claimed
+(`docs/modernization/02-substitution-audit/audit.md:7`,
+`docs/modernization/03b-rewrite/INQACC/interface.md:345`).
+Stop here for review; do not begin another slice.
