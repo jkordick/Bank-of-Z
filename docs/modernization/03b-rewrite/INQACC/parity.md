@@ -305,14 +305,14 @@ or cutover approval
 
 | Test id | Status | commit |
 |---|---|---|
-| INQACC-T39 | PASS - AFCR, one caller-unit-of-work rollback, unchanged fields with success N, no LINK/re-abend | pending |
-| INQACC-T40 | PASS - AFCS, NORMAL rollback and success N, pointer retained | pending |
-| INQACC-T41 | PASS - AFCT, NORMAL rollback and success N, no clearing/retry | pending |
-| INQACC-T42 | PASS - AFCR failed rollback, exact HROL diagnostic/DISPLAY, no N assignment | pending |
-| INQACC-T43 | PASS - AFCS failed rollback, HROL NODUMP/CANCEL, one rollback only | pending |
-| INQACC-T44 | PASS - AFCT failed rollback, HROL not AFCT, no normal result | pending |
-| INQACC-T45 | PASS - AD2Z displays captured SQL diagnostics, records SQLCODE zero and re-abends, no rollback/retry | pending |
-| INQACC-T46 | PASS - ASRA at OPEN/FETCH/CLOSE/SELECT, exact handler diagnostic and re-abend, no SQL/storm display or rollback | pending |
+| INQACC-T39 | PASS - AFCR, one caller-unit-of-work rollback, unchanged fields with success N, no LINK/re-abend | fc2dcd4 |
+| INQACC-T40 | PASS - AFCS, NORMAL rollback and success N, pointer retained | fc2dcd4 |
+| INQACC-T41 | PASS - AFCT, NORMAL rollback and success N, no clearing/retry | fc2dcd4 |
+| INQACC-T42 | PASS - AFCR failed rollback, exact HROL diagnostic/DISPLAY, no N assignment | fc2dcd4 |
+| INQACC-T43 | PASS - AFCS failed rollback, HROL NODUMP/CANCEL, one rollback only | fc2dcd4 |
+| INQACC-T44 | PASS - AFCT failed rollback, HROL not AFCT, no normal result | fc2dcd4 |
+| INQACC-T45 | PASS - AD2Z displays captured SQL diagnostics, records SQLCODE zero and re-abends, no rollback/retry | fc2dcd4 |
+| INQACC-T46 | PASS - ASRA at OPEN/FETCH/CLOSE/SELECT, exact handler diagnostic and re-abend, no SQL/storm display or rollback | fc2dcd4 |
 
 ### Red / green evidence
 
