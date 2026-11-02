@@ -14,5 +14,5 @@
       ]
     }
   },
-  "postCreateCommand": "java -version && python3 --version && gh --version | head -1 && copilot --version"
+  "postCreateCommand": "java -version && javac -version && mvn -version && python3 --version && gh --version | head -1 && copilot --version"
 }
